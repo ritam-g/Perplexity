@@ -9,3 +9,5 @@ async function connectDB() {
         console.log(err);
     }
 }
+
+export default connectDB;

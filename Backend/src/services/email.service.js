@@ -1,0 +1,32 @@
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Function to send email
+const sendEmail = async (to, subject, text, html) => {
+  try {
+    const info = await transporter.sendMail({
+      from: `"Perplexity App" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    console.log('Message sent: %s', info.messageId);
+    return info;
+  } catch (error) {
+    console.error('Error sending email:', error.message);
+    // Don't throw - just log the error to prevent app crash
+    return null;
+  }
+};
+
+export default sendEmail;
+
