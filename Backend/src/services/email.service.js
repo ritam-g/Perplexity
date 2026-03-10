@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async (to, subject, text, html) => {
   try {
     const info = await transporter.sendMail({
-      from: `"Perplexity App" <${process.env.EMAIL_USER}>`,
+      from: `${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
