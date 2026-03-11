@@ -175,7 +175,6 @@ export async function userLoginController(req, res, next) {
         }, process.env.JWT_SECRET_KEY, { expiresIn: '7d' })
         // Set token in cookie
         res.cookie('token', token, {
-            httpOnly: true,
             expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         })
         return res.status(200).json({
@@ -192,6 +191,38 @@ export async function userLoginController(req, res, next) {
         res.status(500).json({
             success: false,
             message: 'Server error during login'
+        });
+    }
+}
+/**
+ * 
+ * @description - get me
+ * @method - GET
+ * @route - /api/auth/me
+ * @access - Private
+ */
+export async function getMeUserController(req, res, next) {
+    try {
+        const user = await userModel.findById(req.user.id)
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'User not found'
+            })
+        }
+        return res.status(200).json({
+            success: true,
+            message: 'User found',
+            user: {
+                username: user.username,
+                email: user.email,
+            }
+        })
+    } catch (err) {
+        console.error('Get me error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Server error during get me'
         });
     }
 }

@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { registerController, userLoginController, verifyEmailController } from "../controller/auth.controller.js";
+import { getMeUserController, registerController, userLoginController, verifyEmailController } from "../controller/auth.controller.js";
 import { loginValidation, registerValidation } from "../middleware/validation.js";
+import { authVerifyMiddleware } from "../middleware/auth.middleware.js";
 
 const authRouter = Router();
 /**!SECTION
@@ -31,4 +32,12 @@ authRouter.get('/verify-email',verifyEmailController)
  */
 
 authRouter.post("/login",loginValidation,userLoginController)
+
+/**!SECTION
+ * @description - getme
+ * @method - GET
+ * @route - /api/auth/getme
+ * @access - Private
+ */
+authRouter.get("/getme",authVerifyMiddleware,getMeUserController)
 export default authRouter;
