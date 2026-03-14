@@ -13,6 +13,7 @@ const emailTool = tool(
     {
         name: "sendEmail",
         description: "Use this tool to send an email",
+        // what ever we write in hree it will be passed as object to sendEmail
         schema: z.object({
             to: z.string().describe("Email address"),
             subject: z.string().describe("Email subject"),
