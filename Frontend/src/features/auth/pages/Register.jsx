@@ -29,7 +29,7 @@ const Register = () => {
     navigate('/login')
   };
   if (loading) return <h1>Loading...</h1>
-
+  if(!loading && user) navigate('/')
   return (
     <section className="min-h-screen bg-zinc-950 px-4 py-10 text-zinc-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[85vh] w-full max-w-5xl items-center justify-center">

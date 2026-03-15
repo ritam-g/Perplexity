@@ -37,7 +37,7 @@ export const router = createBrowserRouter([
         path: '/',
         element: (
             <ProtectedRoute>
-                <h1 className="flex items-center justify-center min-h-screen text-4xl text-white bg-zinc-950">Home - Protected Route</h1>
+                <Dashboard/>
             </ProtectedRoute>
         )
     },
