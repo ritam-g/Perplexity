@@ -6,28 +6,31 @@ dotenv.config();
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
 import { chatWithMistralAiModel } from "./src/services/ai.service.js";
+import http from 'http';
+import { initSocket } from "./src/socket/server.socket.js";
 
 const PORT = process.env.PORT || 5000;
+
+// FIX: Added 'const' and fixed the variable name spelling (httpServer)
+const httpServer = http.createServer(app); 
+
+// FIX: Pass the corrected variable name
+initSocket(httpServer);
 
 async function main() {
   try {
     // connect DB
     await connectDB();
-
+    
     // start server
-    app.listen(PORT, () => {
+    // FIX: Use the corrected variable name here as well
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
 
-    // wait a little before starting CLI
-    //! stoping for morgan 
-    // setTimeout(async () => {
-    //   console.log("\n🤖 AI Chat Started\n");
-    //   await chatWithMistralAiModel();
-    // }, 500);
-
   } catch (err) {
-    console.error("Error:", err);
+    console.error("Error starting the server:", err);
+    process.exit(1); // Optional: Exit process on failure
   }
 }
 
