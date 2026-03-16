@@ -5,7 +5,6 @@ dotenv.config();
 // Imports
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
-import { chatWithMistralAiModel } from "./src/services/ai.service.js";
 import http from 'http';
 import { initSocket } from "./src/socket/server.socket.js";
 

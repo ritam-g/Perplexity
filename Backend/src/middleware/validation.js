@@ -52,3 +52,12 @@ export const loginValidation = [
         .withMessage('Password is required'),
     validate
 ];
+
+export const messageValidation = [
+    body('message')
+        .notEmpty()
+        .withMessage('Message is required'),
+    validate
+];
+
+

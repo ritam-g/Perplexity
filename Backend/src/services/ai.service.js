@@ -65,11 +65,9 @@ export async function chatWithGeminiAiModel(chat) {
 
 let messageHistory = [];
 
-export async function chatWithMistralAiModel() {
+export async function chatWithMistralAiModel({message}) {
 
     while (true) {
-        const message = (await rl.question("\x1b[32mYou:\x1b[0m ")).trim();
-
         // store user message
         messageHistory.push(new HumanMessage(message));
         // console.log('human message', messageHistory)
@@ -86,8 +84,11 @@ export async function chatWithMistralAiModel() {
         messageHistory.push(aiMessage);
 
         // print response
+        return aiMessage.content;
+
         console.log(`\x1b[34m[AI]\x1b[0m ${aiMessage.content}`);
     }
 
 }
+
 
