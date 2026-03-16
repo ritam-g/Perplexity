@@ -109,8 +109,8 @@ export async function getMessageController(req, res) {
       });
     }
 
-    const messages=await messageModel.find({
-      chat:chatId
+    const messages = await messageModel.find({
+      chat: chatId
     })
     res.status(200).json({
       success: true,
@@ -120,5 +120,40 @@ export async function getMessageController(req, res) {
 
   } catch (error) {
 
+  }
+}
+
+export async function chatDeleteController(req, res, next) {
+  try {
+    const { chatId } = req.body
+    //NOTE - verify user is same or not 
+    const userVerificaiton = await chatModel.findOne({
+      _id: chatId,
+      user: req.user.id
+    })
+    if (!userVerificaiton) {
+      return res.status(400).json({
+        success: false,
+        message: "Chat not found",
+      });
+    }
+    //NOTE - delete chat
+    await chatModel.deleteOne({
+      _id: chatId
+    })
+    //note delete messages
+    await messageModel.deleteMany({
+      chat: chatId
+    })
+    return res.status(200).json({
+      success: true,
+      message: "Chat deleted successfully",
+    });
+  } catch (error) {
+    console.error("Chat Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
