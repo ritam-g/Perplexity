@@ -91,3 +91,34 @@ export async function sendMessageController(req, res) {
     });
   }
 }
+/**
+ * @description Get message
+ * @route GET /api/chats
+ */
+export async function getMessageController(req, res) {
+  try {
+    const { chatId } = req.params;
+    const chat = chatModel.findOne({
+      _id: chatId,
+      user: req.user.id
+    })
+    if (!chat) {
+      return res.status(400).json({
+        success: false,
+        message: "Chat not found",
+      });
+    }
+
+    const messages=await messageModel.find({
+      chat:chatId
+    })
+    res.status(200).json({
+      success: true,
+      messages
+    })
+
+
+  } catch (error) {
+
+  }
+}
