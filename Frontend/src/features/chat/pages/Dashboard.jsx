@@ -6,6 +6,7 @@ import { setCurrentChatId } from '../../../app/store/features/chat.slice'
 import { useChat } from '../hooks/useChat'
 
 // ===== Motion Configuration =====
+// 👉 Reuse one small motion preset so message cards enter consistently.
 const itemMotion = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
@@ -94,6 +95,7 @@ function DotsIcon() {
 }
 
 // ===== Formatting Helpers =====
+// 👉 Sidebar timestamps are reduced to relative labels so history is easier to scan.
 function formatRelativeTime(value) {
   if (!value) {
     return 'Just now'
@@ -125,6 +127,7 @@ function formatRelativeTime(value) {
 }
 
 // ===== Sidebar Component =====
+// Renders one history item and highlights the chat that Redux marks as active.
 function SidebarChatItem({ chatItem, isActive, onClick }) {
   return (
     <motion.button
@@ -147,6 +150,7 @@ function SidebarChatItem({ chatItem, isActive, onClick }) {
 }
 
 // ===== Chat Message Rendering =====
+// Only assistant messages expose actions, which keeps the user side visually cleaner.
 function MessageActions({ message, copiedMessageId, onCopy }) {
   const isCopied = copiedMessageId === message.id
 
@@ -168,6 +172,7 @@ function MessageActions({ message, copiedMessageId, onCopy }) {
   )
 }
 
+// Renders one message bubble and switches layout/styles by role.
 function ChatMessage({ message, copiedMessageId, onCopy }) {
   const isUser = message.role === 'user'
 
@@ -223,6 +228,7 @@ function ChatMessage({ message, copiedMessageId, onCopy }) {
   )
 }
 
+// Keeps a stable assistant intro so the chat area never feels empty on first load.
 function WelcomeCard() {
   return (
     <motion.article
@@ -244,6 +250,7 @@ function WelcomeCard() {
   )
 }
 
+// Mirrors the loading state from Redux while the API is processing a request.
 function LoadingMessage() {
   return (
     <motion.article
@@ -271,72 +278,49 @@ function LoadingMessage() {
 }
 
 // ===== Composer Component =====
+// Shared input UI so the footer stays simple and logic remains in the page component.
 function Composer({ chatInput, onChange, onSubmit, disabled }) {
   return (
-    <form
-      onSubmit={onSubmit}
-      className="w-full rounded-2xl border border-white/10 
-  bg-[linear-gradient(180deg,rgba(10,14,26,0.92),rgba(6,9,18,0.98))] 
-  px-4 py-3 shadow-[0_20px_60px_-20px_rgba(2,6,23,1)] backdrop-blur-xl"
-    >
-      {/* ===== Input Row ===== */}
-      <div className="flex items-center gap-3">
-
-        {/* ===== Attach Button ===== */}
+    <form onSubmit={onSubmit} className='w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,26,0.92),rgba(6,9,18,0.98))] px-4 py-3 shadow-[0_20px_60px_-20px_rgba(2,6,23,1)] backdrop-blur-xl'>
+      <div className='flex items-center gap-3'>
         <button
-          type="button"
-          className="hidden md:flex h-10 w-10 items-center justify-center 
-      rounded-xl text-slate-400 transition 
-      hover:bg-white/10 hover:text-white"
+          type='button'
+          className='hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white md:flex'
         >
           <PaperclipIcon />
         </button>
 
-        {/* ===== Input Field Container ===== */}
-        <div
-          className="flex flex-1 items-center rounded-xl border border-white/10 
-      bg-white/[0.05] px-4 py-2 focus-within:border-teal-400/50 
-      transition"
-        >
+        <div className='flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 transition focus-within:border-teal-400/50'>
           <input
-            type="text"
+            type='text'
             value={chatInput}
             onChange={onChange}
-            placeholder="Type your message..."
-            className="w-full bg-transparent text-[15px] text-white 
-        outline-none placeholder:text-slate-400"
+            placeholder='Type your message...'
+            className='w-full bg-transparent text-[15px] text-white outline-none placeholder:text-slate-400'
           />
         </div>
 
-        {/* ===== Mic Button ===== */}
         <button
-          type="button"
-          className="hidden md:flex h-10 w-10 items-center justify-center 
-      rounded-xl text-slate-400 transition 
-      hover:bg-white/10 hover:text-white"
+          type='button'
+          className='hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white md:flex'
         >
           <MicIcon />
         </button>
 
-        {/* ===== Send Button ===== */}
         <button
-          type="submit"
+          type='submit'
           disabled={disabled}
-          className="flex h-10 w-10 items-center justify-center 
-      rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 
-      text-white shadow-lg transition 
-      hover:scale-105 active:scale-95 
-      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100'
         >
           <SendIcon />
         </button>
-
       </div>
     </form>
   )
 }
 
 // ===== Dashboard Page =====
+// Orchestrates sidebar history, selected chat state, and message rendering.
 const Dashboard = () => {
   const chat = useChat()
   const dispatch = useDispatch()
@@ -354,6 +338,10 @@ const Dashboard = () => {
     chat.handleGetChats()
   }, [])
 
+  // Flow:
+  // 1. Get chats from Redux
+  // 2. Convert object -> array
+  // 3. Sort newest first for sidebar rendering
   const sortedChats = useMemo(() => {
     return Object.values(chats).sort(
       (left, right) => new Date(right.lastUpdated || 0).getTime() - new Date(left.lastUpdated || 0).getTime()
@@ -363,6 +351,7 @@ const Dashboard = () => {
   const activeMessages = chats[currentChatId]?.messages || []
   const activeTitle = chats[currentChatId]?.title || 'Nova AI'
 
+  // 👉 Scroll after message changes so the latest response stays visible above the composer.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [currentChatId, activeMessages.length, isLoading])
@@ -375,6 +364,7 @@ const Dashboard = () => {
       return
     }
 
+    // User sends message -> API -> Redux update -> UI re-render
     chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId })
     setChatInput('')
   }
@@ -384,12 +374,14 @@ const Dashboard = () => {
   }
 
   const handleNewChat = () => {
+    // 👉 Resetting the active id lets the next send create a fresh conversation.
     dispatch(setCurrentChatId(null))
     setChatInput('')
   }
 
   const handleCopyMessage = async (message) => {
     try {
+      // 👉 Copying from the rendered state avoids depending on DOM selection.
       await navigator.clipboard.writeText(message.content)
       setCopiedMessageId(message.id)
       window.setTimeout(() => setCopiedMessageId(null), 1500)
@@ -429,7 +421,7 @@ const Dashboard = () => {
                       key={chatItem.id}
                       chatItem={chatItem}
                       isActive={chatItem.id === currentChatId}
-                      // onClick={() => handleOpenChat(chatItem.id)}
+                      // 👉 Clicking history hydrates full messages through the existing API flow.
                       onClick={() => handleOpenChat(chatItem.id)}
                     />
                   ))

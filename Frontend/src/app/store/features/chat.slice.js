@@ -1,21 +1,22 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// ===== Chat Slice =====
+// 👉 `chats` is stored as an object for fast lookup by chat id from any screen.
 const chatSlice = createSlice({
     name: "chat",
     initialState: {
         chats: {},
         isLoading: false,
         error: null,
-        //REVIEW - chatid for active chat
+        // 👉 Tracks which conversation the UI should currently render.
         currentChatId: null
     },
     reducers: {
+        // ===== Chat Metadata =====
         createNewChat: (state, action) => {
             const { chatId, title } = action.payload
 
-            // Create the chat only once.
-            // Reason: if the same chat sends more messages later,
-            // we should not reset old messages.
+            // 👉 Create once, then only refresh metadata so later sends do not wipe messages.
             if (!state.chats[chatId]) {
                 state.chats[chatId] = {
                     id: chatId,
@@ -30,11 +31,12 @@ const chatSlice = createSlice({
             state.chats[chatId].title = title ? title : state.chats[chatId].title
             state.chats[chatId].lastUpdated = new Date().toISOString()
         },
+
+        // ===== Message Updates =====
         addMessage: (state, action) => {
             const { chatId, message, role, messageId } = action.payload
 
-            // Safety check:
-            // if message comes before chat exists, create a basic chat first.
+            // 👉 Messages can arrive before sidebar metadata, so guard against missing chat state.
             if (!state.chats[chatId]) {
                 state.chats[chatId] = {
                     id: chatId,
@@ -44,17 +46,19 @@ const chatSlice = createSlice({
                 }
             }
 
-            // Push one message into that chat conversation.
             state.chats[chatId].messages.push({
                 id: messageId || `${role}-${Date.now()}`,
                 role,
                 content: message
             })
 
-            // Update time so newest chats can stay on top in the UI.
+            // 👉 Keep a local timestamp so history sorting reflects the latest interaction.
             state.chats[chatId].lastUpdated = new Date().toISOString()
-        }
-        , setChats: (state, action) => {
+        },
+
+        // ===== Bulk State Updates =====
+        setChats: (state, action) => {
+            // 👉 Replace the chat map after list fetches or after hydrating one conversation.
             state.chats = action.payload
         },
         setLoading: (state, action) => {
@@ -71,23 +75,3 @@ const chatSlice = createSlice({
 
 export const { setChats, setLoading, setError, setCurrentChatId, createNewChat, addMessage} = chatSlice.actions
 export default chatSlice.reducer;
-
-//NOTE - format will be
-
-// chats = {
-//     "docker and AWS": {
-//         messages: [
-//             {
-//                 role: "user",
-//                 content: "What is docker?"
-//             },
-//             {
-//                 role: "ai",
-//                 content: "Docker is a platform that allows developers to automate the deployment of applications inside lightweight, portable containers. It provides an efficient way to package and distribute software, ensuring consistency across different environments."
-//             }
-//         ],
-//         id: "docker and AWS",
-//         lastUpdated: "2024-06-20T12:34:56Z",
-//     }
-
-// }
