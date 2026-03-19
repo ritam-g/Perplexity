@@ -1,7 +1,57 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useDispatch, useSelector } from "react-redux";
 import { setCurrentChatId } from "../../../app/store/features/chat.slice";
 import { useChat } from "../hooks/useChat";
+
+function MarkdownMessage({ content }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        h1: ({ children }) => <h1 className="mb-3 text-xl font-bold">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-3 text-lg font-bold">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-2 text-base font-semibold">{children}</h3>,
+        p: ({ children }) => <p className="mb-3 last:mb-0 whitespace-pre-wrap">{children}</p>,
+        ul: ({ children }) => <ul className="mb-3 list-disc pl-5">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-3 list-decimal pl-5">{children}</ol>,
+        li: ({ children }) => <li className="mb-1">{children}</li>,
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-cyan-300 underline underline-offset-2"
+          >
+            {children}
+          </a>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className="mb-3 border-l-2 border-slate-500 pl-4 italic text-slate-300">
+            {children}
+          </blockquote>
+        ),
+        pre: ({ children }) => (
+          <pre className="mb-3 overflow-x-auto rounded-2xl bg-slate-950/90 p-4 text-xs">
+            {children}
+          </pre>
+        ),
+        code: ({ inline, children }) =>
+          inline ? (
+            <code className="rounded bg-slate-950/80 px-1.5 py-0.5 text-xs text-cyan-200">
+              {children}
+            </code>
+          ) : (
+            <code className="text-slate-100">{children}</code>
+          ),
+        hr: () => <hr className="my-4 border-slate-700" />,
+      }}
+    >
+      {content || ""}
+    </ReactMarkdown>
+  );
+}
 
 function Dashboard() {
   const dispatch = useDispatch();
@@ -127,7 +177,11 @@ function Dashboard() {
                         : "chat-display bg-slate-800 text-slate-100"
                     }`}
                   >
-                    {item.content}
+                    {item.role === "ai" ? (
+                      <MarkdownMessage content={item.content} />
+                    ) : (
+                      item.content
+                    )}
                   </div>
                 </div>
               ))
