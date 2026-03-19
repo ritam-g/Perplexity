@@ -6,7 +6,9 @@
 }
 
 body {
+    height: 100vh;
     min-height: 100vh;
+    overflow: hidden;
     background:
         radial-gradient(circle at top, rgba(20, 184, 166, 0.08), transparent 28%),
         #020617;
@@ -14,6 +16,7 @@ body {
 }
 
 #root {
+    height: 100vh;
     min-height: 100vh;
 }
 
