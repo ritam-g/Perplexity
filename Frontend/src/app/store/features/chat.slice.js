@@ -10,7 +10,50 @@ const chatSlice = createSlice({
         currentChatId: null
     },
     reducers: {
-        setChats: (state, action) => {
+        createNewChat: (state, action) => {
+            const { chatId, title } = action.payload
+
+            // Create the chat only once.
+            // Reason: if the same chat sends more messages later,
+            // we should not reset old messages.
+            if (!state.chats[chatId]) {
+                state.chats[chatId] = {
+                    id: chatId,
+                    title: title ? title : "New Chat",
+                    messages: [],
+                    lastUpdated: new Date().toISOString()
+                }
+                return
+            }
+
+            // Keep the existing chat and only refresh small metadata.
+            state.chats[chatId].title = title ? title : state.chats[chatId].title
+            state.chats[chatId].lastUpdated = new Date().toISOString()
+        },
+        addMessage: (state, action) => {
+            const { chatId, message, role } = action.payload
+
+            // Safety check:
+            // if message comes before chat exists, create a basic chat first.
+            if (!state.chats[chatId]) {
+                state.chats[chatId] = {
+                    id: chatId,
+                    title: "New Chat",
+                    messages: [],
+                    lastUpdated: new Date().toISOString()
+                }
+            }
+
+            // Push one message into that chat conversation.
+            state.chats[chatId].messages.push({
+                role,
+                content: message
+            })
+
+            // Update time so newest chats can stay on top in the UI.
+            state.chats[chatId].lastUpdated = new Date().toISOString()
+        }
+        , setChats: (state, action) => {
             state.chats = action.payload
         },
         setLoading: (state, action) => {
@@ -25,7 +68,7 @@ const chatSlice = createSlice({
     }
 })
 
-export const { setChats, setLoading, setError, setCurrentChatId } = chatSlice.actions
+export const { setChats, setLoading, setError, setCurrentChatId, createNewChat, addMessage} = chatSlice.actions
 export default chatSlice.reducer;
 
 //NOTE - format will be
