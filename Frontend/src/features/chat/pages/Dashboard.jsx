@@ -1,418 +1,35 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { setCurrentChatId } from '../../../app/store/features/chat.slice';
+import { useChat } from '../hooks/useChat.js';
 import { useSpeechRecognition } from '../../../features/voice/useSpeechRecognition';
-import { setCurrentChatId } from '../../../app/store/features/chat.slice'
-import { useChat } from '../hooks/useChat.js'
 
+// Components
+import { SidebarChatItem } from '../components/SidebarChatItem';
+import { ChatMessage } from '../components/ChatMessage';
+import { WelcomeCard } from '../components/WelcomeCard';
+import { LoadingMessage } from '../components/LoadingMessage';
+import { VoiceOverlay } from '../components/VoiceOverlay';
+import { Composer } from '../components/Composer';
 
-// ===== Motion Configuration =====
-// 👉 Reuse one small motion preset so message cards enter consistently.
-const itemMotion = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.22, ease: 'easeOut' }
-}
-
-// ===== Icon Components =====
-function BotIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M9 4h6M12 4V2M7 9h10a2 2 0 0 1 2 2v5a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-5a2 2 0 0 1 2-2Zm3 4h.01M14 13h.01M9 19v2M15 19v2M3 12H1M23 12h-2' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function UserIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-7 9a7 7 0 0 1 14 0' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
-    </svg>
-  )
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M12 5v14M5 12h14' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' />
-    </svg>
-  )
-}
-
-function ClockIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-4 w-4'>
-      <path d='M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function CopyIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-4 w-4'>
-      <path d='M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4M9 9H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4M9 9h8' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function SendIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='m4 12 15-7-4 7 4 7-15-7Zm0 0h11' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function PaperclipIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='m8 12.5 6.7-6.7a3 3 0 1 1 4.3 4.2l-9 9a5 5 0 0 1-7.1-7.1l9-9' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function MicIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M12 15a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm0 0v4m-5-6a5 5 0 0 0 10 0' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function ShareIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M16 8a3 3 0 1 0-2.8-4H13a3 3 0 0 0 .2 1L8.8 8.1a3 3 0 0 0-1.8-.6 3 3 0 1 0 1.8 5.4l4.5 3.1a3 3 0 1 0 .9-1.3l-4.6-3.2a3 3 0 0 0 0-1l4.6-3.2A3 3 0 0 0 16 8Z' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-    </svg>
-  )
-}
-
-function DotsIcon() {
-  return (
-    <svg viewBox='0 0 24 24' aria-hidden='true' className='h-5 w-5'>
-      <path d='M12 5.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Zm0 5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z' fill='currentColor' />
-    </svg>
-  )
-}
-
-// ===== Formatting Helpers =====
-// 👉 Sidebar timestamps are reduced to relative labels so history is easier to scan.
-function formatRelativeTime(value) {
-  if (!value) {
-    return 'Just now'
-  }
-
-  const date = new Date(value)
-  const now = new Date()
-  const diffMinutes = Math.floor((now.getTime() - date.getTime()) / 60000)
-
-  if (diffMinutes < 1) {
-    return 'Just now'
-  }
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) {
-    return `${diffHours}h ago`
-  }
-
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) {
-    return `${diffDays}d ago`
-  }
-
-  return date.toLocaleDateString()
-}
-
-// ===== Sidebar Component =====
-// Renders one history item and highlights the chat that Redux marks as active.
-function SidebarChatItem({ chatItem, isActive, onClick }) {
-  return (
-    <motion.button
-      whileHover={{ y: -1.5 }}
-      whileTap={{ scale: 0.99 }}
-      onClick={onClick}
-      type='button'
-      className={`w-full rounded-[20px] border px-4 py-3 text-left transition duration-200 ${isActive
-        ? 'border-teal-400/30 bg-[linear-gradient(135deg,rgba(45,212,191,0.15),rgba(15,23,42,0.9))] shadow-[0_20px_50px_-34px_rgba(45,212,191,0.85)]'
-        : 'border-white/8 bg-white/[0.02] hover:border-white/14 hover:bg-white/[0.04]'
-        }`}
-    >
-      <p className='truncate text-sm font-semibold text-white'>{chatItem.title}</p>
-      <div className='mt-2 flex items-center gap-1.5 text-xs text-slate-400'>
-        <ClockIcon />
-        <span>{formatRelativeTime(chatItem.lastUpdated)}</span>
-      </div>
-    </motion.button>
-  )
-}
-
-// ===== Chat Message Rendering =====
-// Only assistant messages expose actions, which keeps the user side visually cleaner.
-function MessageActions({ message, copiedMessageId, onCopy }) {
-  const isCopied = copiedMessageId === message.id
-
-  if (message.role === 'user') {
-    return null
-  }
-
-  return (
-    <div className='mt-4 flex items-center gap-2'>
-      <button
-        type='button'
-        onClick={() => onCopy(message)}
-        className='inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-white/16 hover:bg-white/[0.05] hover:text-white'
-      >
-        <CopyIcon />
-        <span>{isCopied ? 'Copied' : 'Copy'}</span>
-      </button>
-    </div>
-  )
-}
-
-// Renders one message bubble and switches layout/styles by role.
-function ChatMessage({ message, copiedMessageId, onCopy }) {
-  const isUser = message.role === 'user'
-
-  return (
-    <motion.article
-      {...itemMotion}
-      className={`flex gap-4 ${isUser ? 'justify-end' : 'justify-start'}`}
-    >
-      {!isUser && (
-        <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10 text-teal-200'>
-          <BotIcon />
-        </div>
-      )}
-
-      <div className={`max-w-[88%] md:max-w-[78%] ${isUser ? 'order-first' : ''}`}>
-        <div className={`mb-2 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500 ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <span>{isUser ? 'You' : 'Nova Assistant'}</span>
-        </div>
-
-        <div
-          className={`rounded-[28px] px-5 py-4 text-[15px] leading-7 shadow-[0_24px_60px_-34px_rgba(2,6,23,1)] md:px-6 md:py-5 ${isUser
-            ? 'rounded-tr-md bg-[linear-gradient(135deg,#14b8a6,#0f766e)] text-white'
-            : 'rounded-tl-md border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(9,12,24,0.98))] text-slate-100'
-            }`}
-        >
-          {isUser ? (
-            <p className='whitespace-pre-wrap'>{message.content}</p>
-          ) : (
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className='mb-3 last:mb-0'>{children}</p>,
-                ul: ({ children }) => <ul className='mb-3 list-disc space-y-1 pl-5 last:mb-0'>{children}</ul>,
-                ol: ({ children }) => <ol className='mb-3 list-decimal space-y-1 pl-5 last:mb-0'>{children}</ol>,
-                code: ({ children }) => <code className='rounded-lg bg-white/8 px-1.5 py-0.5 text-teal-200'>{children}</code>,
-                pre: ({ children }) => <pre className='mb-3 overflow-x-auto rounded-2xl border border-white/8 bg-black/30 p-4 last:mb-0'>{children}</pre>,
-                strong: ({ children }) => <strong className='font-semibold text-white'>{children}</strong>
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          )}
-
-          <MessageActions message={message} copiedMessageId={copiedMessageId} onCopy={onCopy} />
-        </div>
-      </div>
-
-      {isUser && (
-        <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-100'>
-          <UserIcon />
-        </div>
-      )}
-    </motion.article>
-  )
-}
-
-// Keeps a stable assistant intro so the chat area never feels empty on first load.
-function WelcomeCard() {
-  return (
-    <motion.article
-      {...itemMotion}
-      className='flex gap-4'
-    >
-      <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10 text-teal-200'>
-        <BotIcon />
-      </div>
-      <div className='max-w-[88%] md:max-w-[86%]'>
-        <div className='mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500'>
-          Nova Assistant
-        </div>
-        <div className='rounded-[28px] rounded-tl-md border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(9,12,24,0.98))] px-5 py-5 text-[15px] leading-7 text-slate-100 shadow-[0_24px_60px_-34px_rgba(2,6,23,1)] md:px-6'>
-          Hello! I&apos;m your AI assistant. I can help you with coding, creative writing, research, analysis, and general problem solving. How can I assist you today?
-        </div>
-      </div>
-    </motion.article>
-  )
-}
-
-// Mirrors the loading state from Redux while the API is processing a request.
-function LoadingMessage() {
-  return (
-    <motion.article
-      {...itemMotion}
-      className='flex gap-4'
-    >
-      <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-400/10 text-teal-200'>
-        <BotIcon />
-      </div>
-      <div className='max-w-[88%] md:max-w-[70%]'>
-        <div className='mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-slate-500'>
-          Nova Assistant
-        </div>
-        <div className='rounded-[28px] rounded-tl-md border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(9,12,24,0.98))] px-5 py-5 text-slate-300 shadow-[0_24px_60px_-34px_rgba(2,6,23,1)]'>
-          <div className='mb-3 flex items-center gap-2'>
-            <span className='typing-dot h-2.5 w-2.5 rounded-full bg-teal-300 [animation-delay:0ms]' />
-            <span className='typing-dot h-2.5 w-2.5 rounded-full bg-emerald-300 [animation-delay:150ms]' />
-            <span className='typing-dot h-2.5 w-2.5 rounded-full bg-cyan-300 [animation-delay:300ms]' />
-          </div>
-          <p className='text-sm text-slate-400'>Thinking...</p>
-        </div>
-      </div>
-    </motion.article>
-  )
-}
-
-// ===== Voice Overlay Component =====
-function VoiceOverlay({ listening, onStop, transcript }) {
-  return (
-    <AnimatePresence>
-      {listening && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#09111a]/90 backdrop-blur-xl"
-        >
-          <div className="relative flex h-64 w-64 items-center justify-center">
-            {/* Animated rings for pulsing effect */}
-            <motion.div
-              animate={{ 
-                scale: [1, 2],
-                opacity: [0.5, 0]
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity,
-                ease: "easeOut"
-              }}
-              className="absolute h-full w-full rounded-full border-2 border-teal-500/30"
-            />
-            <motion.div
-              animate={{ 
-                scale: [1, 1.6],
-                opacity: [0.3, 0]
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity,
-                delay: 0.5,
-                ease: "easeOut"
-              }}
-              className="absolute h-full w-full rounded-full border-2 border-teal-500/20"
-            />
-            
-            <div className="z-10 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_0_50px_rgba(45,212,191,0.4)]">
-              <svg viewBox='0 0 24 24' aria-hidden='true' className='h-12 w-12'>
-                <path d='M12 15a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm0 0v4m-5-6a5 5 0 0 0 10 0' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
-              </svg>
-            </div>
-          </div>
-
-          <div className="mt-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white mb-4">Listening...</h2>
-            <div className="max-w-2xl px-8">
-              <p className="text-xl text-teal-100/70 italic min-h-[1.5em] leading-relaxed">
-                {transcript || "I'm listening, say something..."}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onStop}
-            className="mt-16 group relative flex items-center justify-center overflow-hidden rounded-2xl bg-white/5 p-[1px] transition-all hover:bg-white/10"
-          >
-            <div className="relative rounded-[calc(1rem-1px)] bg-[#0f172a] px-10 py-3 text-sm font-semibold text-white transition-colors group-hover:bg-transparent">
-              Stop Interaction
-            </div>
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-// ===== Composer Component =====
-// Shared input UI so the footer stays simple and logic remains in the page component.
-function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening }) {
-  return (
-    <form onSubmit={onSubmit} className='w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,26,0.92),rgba(6,9,18,0.98))] px-4 py-3 shadow-[0_20px_60px_-20px_rgba(2,6,23,1)] backdrop-blur-xl'>
-      <div className='flex items-center gap-3'>
-        <button
-          type='button'
-          className='hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white md:flex'
-        >
-          <PaperclipIcon />
-        </button>
-
-        <div className='flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 transition focus-within:border-teal-400/50'>
-          <input
-            type='text'
-            value={chatInput}
-            onChange={onChange}
-
-            placeholder='Type your message...'
-            className='w-full bg-transparent text-[15px] text-white outline-none placeholder:text-slate-400'
-          />
-        </div>
-
-        <button
-          type='button'
-          onClick={onMicClick}
-          className={`group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 ${isListening 
-            ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' 
-            : 'text-slate-400 hover:bg-white/10 hover:text-white'
-          }`}
-          aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-        >
-          <MicIcon />
-        </button>
-
-        <button
-          type='submit'
-          disabled={disabled}
-          className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100'
-        >
-          <SendIcon />
-        </button>
-      </div>
-    </form>
-  );
-}
+// Icons
+import { PlusIcon, UserIcon, BotIcon, ShareIcon, DotsIcon } from '../icons';
 
 const Dashboard = () => {
-
-  const chat = useChat()
-  const dispatch = useDispatch()
-  const [chatInput, setChatInput] = useState('')
-  const [copiedMessageId, setCopiedMessageId] = useState(null)
+  const chat = useChat();
+  const dispatch = useDispatch();
+  const [chatInput, setChatInput] = useState('');
+  const [copiedMessageId, setCopiedMessageId] = useState(null);
   
-  const chats = useSelector((state) => state.chat.chats)
-  const currentChatId = useSelector((state) => state.chat.currentChatId)
-  const isLoading = useSelector((state) => state.chat.isLoading)
-  const chatError = useSelector((state) => state.chat.error)
+  const chats = useSelector((state) => state.chat.chats);
+  const currentChatId = useSelector((state) => state.chat.currentChatId);
+  const isLoading = useSelector((state) => state.chat.isLoading);
+  const chatError = useSelector((state) => state.chat.error);
   
   const { transcript, listening, error: voiceError } = useSelector((state) => state.voice);
   const { startListening, stopListening, toggleListening } = useSpeechRecognition();
   
-  const messagesEndRef = useRef(null)
+  const messagesEndRef = useRef(null);
   const prevListeningRef = useRef(listening);
 
   // Sync transcript to input field only when listening
@@ -438,9 +55,9 @@ const Dashboard = () => {
 
   // ===== API Data Handling =====
   useEffect(() => {
-    chat.initializeSocketConnection()
-    chat.handleGetChats()
-  }, [])
+    chat.initializeSocketConnection();
+    chat.handleGetChats();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Flow:
   // 1. Get chats from Redux
@@ -449,50 +66,50 @@ const Dashboard = () => {
   const sortedChats = useMemo(() => {
     return Object.values(chats).sort(
       (left, right) => new Date(right.lastUpdated || 0).getTime() - new Date(left.lastUpdated || 0).getTime()
-    )
-  }, [chats])
+    );
+  }, [chats]);
 
-  const activeMessages = chats[currentChatId]?.messages || []
-  const activeTitle = chats[currentChatId]?.title || 'Nova AI'
+  const activeMessages = chats[currentChatId]?.messages || [];
+  const activeTitle = chats[currentChatId]?.title || 'Nova AI';
 
   // 👉 Scroll after message changes so the latest response stays visible above the composer.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [currentChatId, activeMessages.length, isLoading])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [currentChatId, activeMessages.length, isLoading]);
 
   const handleSubmitMessage = (event) => {
     if (event) event.preventDefault();
 
-    const trimmedMessage = chatInput.trim()
+    const trimmedMessage = chatInput.trim();
     if (!trimmedMessage) {
-      return
+      return;
     }
 
     // User sends message -> API -> Redux update -> UI re-render
-    chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId })
-    setChatInput('')
-  }
+    chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId });
+    setChatInput('');
+  };
 
   const handleOpenChat = (chatId) => {
-    chat.handleOpenChat(chatId)
-  }
+    chat.handleOpenChat(chatId);
+  };
 
   const handleNewChat = () => {
     // 👉 Resetting the active id lets the next send create a fresh conversation.
-    dispatch(setCurrentChatId(null))
-    setChatInput('')
-  }
+    dispatch(setCurrentChatId(null));
+    setChatInput('');
+  };
 
   const handleCopyMessage = async (message) => {
     try {
       // 👉 Copying from the rendered state avoids depending on DOM selection.
-      await navigator.clipboard.writeText(message.content)
-      setCopiedMessageId(message.id)
-      window.setTimeout(() => setCopiedMessageId(null), 1500)
+      await navigator.clipboard.writeText(message.content);
+      setCopiedMessageId(message.id);
+      window.setTimeout(() => setCopiedMessageId(null), 1500);
     } catch {
-      setCopiedMessageId(null)
+      setCopiedMessageId(null);
     }
-  }
+  };
 
   return (
     // ===== Main Layout Container (Full Height) =====
@@ -563,9 +180,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-3 min-w-0">
 
                   {/* Bot Icon */}
-                  <div className="flex h-9 w-9 items-center justify-center 
-        rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 
-        text-white shadow-md shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-md shrink-0">
                     <BotIcon />
                   </div>
 
@@ -588,16 +203,14 @@ const Dashboard = () => {
 
                   <button
                     type="button"
-                    className="flex h-9 w-9 items-center justify-center 
-        rounded-xl transition hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:bg-white/10 hover:text-white"
                   >
                     <ShareIcon />
                   </button>
 
                   <button
                     type="button"
-                    className="flex h-9 w-9 items-center justify-center 
-        rounded-xl transition hover:bg-white/10 hover:text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl transition hover:bg-white/10 hover:text-white"
                   >
                     <DotsIcon />
                   </button>
@@ -662,7 +275,7 @@ const Dashboard = () => {
         </section>
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;
