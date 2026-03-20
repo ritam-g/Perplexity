@@ -5,6 +5,7 @@ import authRouter from './routes/auth.route.js';
 import cookieParser from 'cookie-parser'
 import morgan from 'morgan';
 import chatRouter from './routes/chat.route.js';
+import fileRouter from './routes/file.route.js';
 // Load environment variables from .env file
 dotenv.config();
 
@@ -29,7 +30,7 @@ app.get('/', (req, res) => {
 // TODO: Add your API routes here
 app.use('/api/auth', authRouter);
 app.use('/api/chats', chatRouter)
-
+app.use("/api/files", fileRouter);
 
 
 // Error handling middleware
