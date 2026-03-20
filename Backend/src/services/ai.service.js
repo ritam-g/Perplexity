@@ -81,7 +81,9 @@ export async function chatWithMistralAiModel({ message }) {
     // ])
     //todo  makig sing json to more context for the ai 
     const allMessages = message.map(msg => {
-        if (msg.role == "user") {
+        if (msg.role === "system") {
+            return new SystemMessage(msg.content)
+        } else if (msg.role === "user") {
             return new HumanMessage(msg.content)
         } else {
             return new AIMessage(msg.content)

@@ -21,8 +21,11 @@ export async function extractTextFromFile(file) {
 
         //REVIEW - empty PDF text usually means scanned/image-only resume or bad file content.
         if (!resumeContent?.text?.trim()) {
-            return res.status(400).json({ message: "unable to extract text from resume pdf" })
+            throw new Error("unable to extract text from resume pdf");
         }
+
+        // ✨ FIX: actually assign the text back to the returned variable
+        text = resumeContent.text;
     }
 
     // 🖼️ Image Case (ImageKit)
