@@ -17,9 +17,6 @@ const voiceSlice = createSlice({
         },
         setListening: (state, action) => {
             state.listening = action.payload;
-            if (!action.payload) {
-                state.transcript = ""; // Clear on stop
-            }
             state.error = null;
         },
         setError: (state, action) => {

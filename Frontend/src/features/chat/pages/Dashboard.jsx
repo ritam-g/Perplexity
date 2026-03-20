@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useDispatch, useSelector } from 'react-redux';
-import VoiceInput from '../../../features/voice/VoiceInput';
+import { useSpeechRecognition } from '../../../features/voice/useSpeechRecognition';
 import { setCurrentChatId } from '../../../app/store/features/chat.slice'
 import { useChat } from '../hooks/useChat.js'
 
@@ -279,9 +279,79 @@ function LoadingMessage() {
   )
 }
 
+// ===== Voice Overlay Component =====
+function VoiceOverlay({ listening, onStop, transcript }) {
+  return (
+    <AnimatePresence>
+      {listening && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#09111a]/90 backdrop-blur-xl"
+        >
+          <div className="relative flex h-64 w-64 items-center justify-center">
+            {/* Animated rings for pulsing effect */}
+            <motion.div
+              animate={{ 
+                scale: [1, 2],
+                opacity: [0.5, 0]
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity,
+                ease: "easeOut"
+              }}
+              className="absolute h-full w-full rounded-full border-2 border-teal-500/30"
+            />
+            <motion.div
+              animate={{ 
+                scale: [1, 1.6],
+                opacity: [0.3, 0]
+              }}
+              transition={{ 
+                duration: 2, 
+                repeat: Infinity,
+                delay: 0.5,
+                ease: "easeOut"
+              }}
+              className="absolute h-full w-full rounded-full border-2 border-teal-500/20"
+            />
+            
+            <div className="z-10 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-[0_0_50px_rgba(45,212,191,0.4)]">
+              <svg viewBox='0 0 24 24' aria-hidden='true' className='h-12 w-12'>
+                <path d='M12 15a3 3 0 0 0 3-3V7a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm0 0v4m-5-6a5 5 0 0 0 10 0' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
+              </svg>
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white mb-4">Listening...</h2>
+            <div className="max-w-2xl px-8">
+              <p className="text-xl text-teal-100/70 italic min-h-[1.5em] leading-relaxed">
+                {transcript || "I'm listening, say something..."}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onStop}
+            className="mt-16 group relative flex items-center justify-center overflow-hidden rounded-2xl bg-white/5 p-[1px] transition-all hover:bg-white/10"
+          >
+            <div className="relative rounded-[calc(1rem-1px)] bg-[#0f172a] px-10 py-3 text-sm font-semibold text-white transition-colors group-hover:bg-transparent">
+              Stop Interaction
+            </div>
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // ===== Composer Component =====
 // Shared input UI so the footer stays simple and logic remains in the page component.
-function Composer({ chatInput, onChange, onSubmit, disabled }) {
+function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening }) {
   return (
     <form onSubmit={onSubmit} className='w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,26,0.92),rgba(6,9,18,0.98))] px-4 py-3 shadow-[0_20px_60px_-20px_rgba(2,6,23,1)] backdrop-blur-xl'>
       <div className='flex items-center gap-3'>
@@ -305,7 +375,12 @@ function Composer({ chatInput, onChange, onSubmit, disabled }) {
 
         <button
           type='button'
-          className='hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white md:flex'
+          onClick={onMicClick}
+          className={`group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 ${isListening 
+            ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' 
+            : 'text-slate-400 hover:bg-white/10 hover:text-white'
+          }`}
+          aria-label={isListening ? 'Stop listening' : 'Start voice input'}
         >
           <MicIcon />
         </button>
@@ -328,12 +403,38 @@ const Dashboard = () => {
   const dispatch = useDispatch()
   const [chatInput, setChatInput] = useState('')
   const [copiedMessageId, setCopiedMessageId] = useState(null)
+  
   const chats = useSelector((state) => state.chat.chats)
   const currentChatId = useSelector((state) => state.chat.currentChatId)
   const isLoading = useSelector((state) => state.chat.isLoading)
-  const error = useSelector((state) => state.chat.error)
+  const chatError = useSelector((state) => state.chat.error)
+  
+  const { transcript, listening, error: voiceError } = useSelector((state) => state.voice);
+  const { startListening, stopListening, toggleListening } = useSpeechRecognition();
+  
   const messagesEndRef = useRef(null)
+  const prevListeningRef = useRef(listening);
 
+  // Sync transcript to input field only when listening
+  useEffect(() => {
+    if (listening && transcript) {
+      setChatInput(transcript);
+    }
+  }, [listening, transcript]);
+
+  // AUTO-SUBMIT on Voice Finish
+  useEffect(() => {
+    if (prevListeningRef.current === true && listening === false) {
+      const finalMessage = transcript.trim() || chatInput.trim();
+      if (finalMessage) {
+        chat.handleSendMessage({ message: finalMessage, chatId: currentChatId });
+        setChatInput('');
+        // Let Redux know we consumed this transcript
+        dispatch({ type: 'voice/setTranscript', payload: '' });
+      }
+    }
+    prevListeningRef.current = listening;
+  }, [listening, transcript, chatInput, currentChatId, chat, dispatch]);
 
   // ===== API Data Handling =====
   useEffect(() => {
@@ -360,7 +461,7 @@ const Dashboard = () => {
   }, [currentChatId, activeMessages.length, isLoading])
 
   const handleSubmitMessage = (event) => {
-    event.preventDefault()
+    if (event) event.preventDefault();
 
     const trimmedMessage = chatInput.trim()
     if (!trimmedMessage) {
@@ -506,9 +607,15 @@ const Dashboard = () => {
               </div>
             </header>
 
-            {error && (
+            {chatError && (
               <div className='mx-4 mt-4 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100 md:mx-7'>
-                {error}
+                {chatError}
+              </div>
+            )}
+
+            {voiceError && (
+              <div className='mx-4 mt-4 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100 md:mx-7'>
+                Voice Error: {voiceError}
               </div>
             )}
 
@@ -532,20 +639,24 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* ===== Fixed Input Box ===== */}
               <div className='border-t border-white/8 bg-[linear-gradient(180deg,rgba(8,17,26,0.88),rgba(8,17,26,0.98))] px-4 py-4 backdrop-blur-xl md:px-7 md:py-5'>
                 <div className='mx-auto max-w-5xl'>
-                  <div className="flex justify-center mb-4">
-                    <VoiceInput onTranscript={(transcript) => setChatInput(transcript)} />
-                  </div>
                   <Composer
                     chatInput={chatInput}
                     onChange={(event) => setChatInput(event.target.value)}
                     onSubmit={handleSubmitMessage}
                     disabled={!chatInput.trim()}
+                    onMicClick={() => toggleListening(listening)}
+                    isListening={listening}
                   />
                 </div>
               </div>
+              
+              <VoiceOverlay 
+                listening={listening} 
+                onStop={stopListening} 
+                transcript={transcript} 
+              />
             </div>
           </section>
         </section>
