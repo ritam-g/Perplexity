@@ -42,26 +42,26 @@ export function useChat() {
             // 2. Backend returns chat metadata + user/AI messages
             // 3. Redux stores both messages so UI re-renders immediately
             const { chatId: activeChatId, chat, userMessage, aiMessage } = await sendMessage({ message, chatId });
-
+            //! added new message as id
             dispatch(createNewChat({
                 chatId: activeChatId,
                 title: chat?.title || chats[activeChatId]?.title || "New Chat",
             }));
-
+            //! in that new messageid we are adding meesage of user
             dispatch(addMessage({
                 chatId: activeChatId,
                 message: userMessage?.content || message,
                 role: "user",
                 messageId: userMessage?._id,
             }));
-
+            //! in that new messageid we are adding meesage of ai
             dispatch(addMessage({
                 chatId: activeChatId,
                 message: aiMessage?.content || "",
                 role: "ai",
                 messageId: aiMessage?._id,
             }));
-
+            //! now setting current caht id is active id  
             dispatch(setCurrentChatId(activeChatId));
         } catch (error) {
             dispatch(setError(error.message));
@@ -78,6 +78,8 @@ export function useChat() {
             const data = await getChat();
 
             // 👉 Convert the API array into an object keyed by chat id for fast Redux access.
+            // 👉 Default to a new chat if none exist.
+            // it will be for reloding the page
             const nextChats = (data.chats || []).reduce((acc, chat) => {
                 acc[chat._id] = {
                     id: chat._id,
@@ -116,6 +118,7 @@ export function useChat() {
                 [chatId]: {
                     id: chatId,
                     title: selectedChat.title || "New Chat",
+                    // 👉 Replace the existing chat messages with the loaded messages.
                     messages: mapMessages(data.messages || []),
                     lastUpdated: selectedChat.lastUpdated || new Date().toISOString(),
                 },
@@ -128,6 +131,7 @@ export function useChat() {
             dispatch(setLoading(false));
         }
     }
+    
 
     return {
         handleSendMessage,

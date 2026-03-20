@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { motion } from 'framer-motion'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux';
+import VoiceInput from '../../../features/voice/VoiceInput';
 import { setCurrentChatId } from '../../../app/store/features/chat.slice'
-import { useChat } from '../hooks/useChat'
+import { useChat } from '../hooks/useChat.js'
+
 
 // ===== Motion Configuration =====
 // 👉 Reuse one small motion preset so message cards enter consistently.
@@ -136,8 +138,8 @@ function SidebarChatItem({ chatItem, isActive, onClick }) {
       onClick={onClick}
       type='button'
       className={`w-full rounded-[20px] border px-4 py-3 text-left transition duration-200 ${isActive
-          ? 'border-teal-400/30 bg-[linear-gradient(135deg,rgba(45,212,191,0.15),rgba(15,23,42,0.9))] shadow-[0_20px_50px_-34px_rgba(45,212,191,0.85)]'
-          : 'border-white/8 bg-white/[0.02] hover:border-white/14 hover:bg-white/[0.04]'
+        ? 'border-teal-400/30 bg-[linear-gradient(135deg,rgba(45,212,191,0.15),rgba(15,23,42,0.9))] shadow-[0_20px_50px_-34px_rgba(45,212,191,0.85)]'
+        : 'border-white/8 bg-white/[0.02] hover:border-white/14 hover:bg-white/[0.04]'
         }`}
     >
       <p className='truncate text-sm font-semibold text-white'>{chatItem.title}</p>
@@ -194,8 +196,8 @@ function ChatMessage({ message, copiedMessageId, onCopy }) {
 
         <div
           className={`rounded-[28px] px-5 py-4 text-[15px] leading-7 shadow-[0_24px_60px_-34px_rgba(2,6,23,1)] md:px-6 md:py-5 ${isUser
-              ? 'rounded-tr-md bg-[linear-gradient(135deg,#14b8a6,#0f766e)] text-white'
-              : 'rounded-tl-md border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(9,12,24,0.98))] text-slate-100'
+            ? 'rounded-tr-md bg-[linear-gradient(135deg,#14b8a6,#0f766e)] text-white'
+            : 'rounded-tl-md border border-white/8 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(9,12,24,0.98))] text-slate-100'
             }`}
         >
           {isUser ? (
@@ -295,6 +297,7 @@ function Composer({ chatInput, onChange, onSubmit, disabled }) {
             type='text'
             value={chatInput}
             onChange={onChange}
+
             placeholder='Type your message...'
             className='w-full bg-transparent text-[15px] text-white outline-none placeholder:text-slate-400'
           />
@@ -316,12 +319,11 @@ function Composer({ chatInput, onChange, onSubmit, disabled }) {
         </button>
       </div>
     </form>
-  )
+  );
 }
 
-// ===== Dashboard Page =====
-// Orchestrates sidebar history, selected chat state, and message rendering.
 const Dashboard = () => {
+
   const chat = useChat()
   const dispatch = useDispatch()
   const [chatInput, setChatInput] = useState('')
@@ -331,6 +333,7 @@ const Dashboard = () => {
   const isLoading = useSelector((state) => state.chat.isLoading)
   const error = useSelector((state) => state.chat.error)
   const messagesEndRef = useRef(null)
+
 
   // ===== API Data Handling =====
   useEffect(() => {
@@ -532,6 +535,9 @@ const Dashboard = () => {
               {/* ===== Fixed Input Box ===== */}
               <div className='border-t border-white/8 bg-[linear-gradient(180deg,rgba(8,17,26,0.88),rgba(8,17,26,0.98))] px-4 py-4 backdrop-blur-xl md:px-7 md:py-5'>
                 <div className='mx-auto max-w-5xl'>
+                  <div className="flex justify-center mb-4">
+                    <VoiceInput onTranscript={(transcript) => setChatInput(transcript)} />
+                  </div>
                   <Composer
                     chatInput={chatInput}
                     onChange={(event) => setChatInput(event.target.value)}

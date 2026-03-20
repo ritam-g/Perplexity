@@ -46,6 +46,8 @@ const chatSlice = createSlice({
                 }
             }
 
+            // 👉 Add the new message to the existing list.
+
             state.chats[chatId].messages.push({
                 id: messageId || `${role}-${Date.now()}`,
                 role,

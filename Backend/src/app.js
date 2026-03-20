@@ -25,6 +25,7 @@ app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
+
 // TODO: Add your API routes here
 app.use('/api/auth', authRouter);
 app.use('/api/chats', chatRouter)
