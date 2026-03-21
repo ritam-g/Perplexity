@@ -62,7 +62,7 @@ export async function sendMessageController(req, res) {
     if (req.file) {
       const fileText = await extractTextFromFile(req.file);
       const lastMsg = dbMessages[dbMessages.length - 1];
-      
+
       // Inject extracted text so AI can query it
       lastMsg.content = `File Content:\n${fileText}\n\nUser Question:\n${lastMsg.content}`;
     }
@@ -129,7 +129,11 @@ export async function getMessageController(req, res) {
 
 
   } catch (error) {
-
+    console.error("Chat Error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 }
 
