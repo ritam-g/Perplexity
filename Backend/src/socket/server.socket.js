@@ -42,12 +42,13 @@ export function initSocket(httpServer) {
                 
                 let activeChatId = chatId;
                 let chat = null;
+                let chatTitle = null;
 
                 if (!chatId || String(chatId).startsWith("temp_")) {
-                    const title = await messageTitleGenerator(message);
+                    chatTitle = await messageTitleGenerator(message);
                     chat = await chatModel.create({
                         user: userId,
-                        title: title,
+                        title: chatTitle,
                     });
                     activeChatId = chat._id.toString();
                 }
@@ -78,7 +79,7 @@ export function initSocket(httpServer) {
                     role: "ai",
                 });
 
-                socket.emit("done", { chatId: activeChatId });
+                socket.emit("done", { chatId: activeChatId, title: chatTitle });
             } catch (err) {
                 console.error("Socket ASK error:", err);
                 socket.emit("error", err.message);

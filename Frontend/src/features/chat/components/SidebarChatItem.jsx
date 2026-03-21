@@ -3,7 +3,16 @@ import { motion } from 'framer-motion';
 import { ClockIcon } from '../icons';
 import { formatRelativeTime } from '../utils/formatters';
 
+// Show only the first 5 words of a title; append '…' if truncated.
+function truncateTitle(title = '') {
+  const words = title.trim().split(/\s+/);
+  if (words.length <= 5) return title;
+  return words.slice(0, 5).join(' ') + '…';
+}
+
 export function SidebarChatItem({ chatItem, isActive, onClick }) {
+  const displayTitle = truncateTitle(chatItem.title);
+
   return (
     <motion.button
       whileHover={{ y: -1.5 }}
@@ -15,7 +24,7 @@ export function SidebarChatItem({ chatItem, isActive, onClick }) {
         : 'border-white/8 bg-white/[0.02] hover:border-white/14 hover:bg-white/[0.04]'
         }`}
     >
-      <p className='truncate text-sm font-semibold text-white'>{chatItem.title}</p>
+      <p className='truncate text-sm font-semibold text-white' title={chatItem.title}>{displayTitle}</p>
       <div className='mt-2 flex items-center gap-1.5 text-xs text-slate-400'>
         <ClockIcon />
         <span>{formatRelativeTime(chatItem.lastUpdated)}</span>

@@ -122,11 +122,20 @@ export async function chatWithMistralAiModel({ message }) {
 //making title base on the message
 export async function messageTitleGenerator(message) {
     const response = await model.invoke([
-        new SystemMessage("you are a helpful assistant that generates a title for a message based on the content of the message"),
+        new SystemMessage(
+            "Generate a SHORT chat title (4-5 words maximum) that captures the topic of the user message. " +
+            "Rules: Only output the title itself — no explanations, no bullet points, no quotes, no punctuation at the end. " +
+            "Examples: 'Fix login bug', 'React state management help', 'Plan weekend trip', 'Write poem about rain'."
+        ),
         new HumanMessage(message)
-    ])
+    ]);
 
-    return response.text
+    // Strip any surrounding quotes Gemini sometimes adds and trim whitespace
+    const raw = (response.text || '').trim().replace(/^["']|["']$/g, '');
+
+    // Safety net: if the model still returns something too long, clip to 5 words
+    const words = raw.split(/\s+/);
+    return words.length <= 5 ? raw : words.slice(0, 5).join(' ');
 }
 
 

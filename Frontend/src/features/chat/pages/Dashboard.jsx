@@ -72,7 +72,11 @@ const Dashboard = () => {
   }, [chats]);
 
   const activeMessages = chats[currentChatId]?.messages || [];
-  const activeTitle = chats[currentChatId]?.title || 'Doraemon';
+  const rawTitle = chats[currentChatId]?.title || 'Doraemon';
+  const activeTitle = (() => {
+    const words = rawTitle.trim().split(/\s+/);
+    return words.length <= 5 ? rawTitle : words.slice(0, 5).join(' ') + '…';
+  })();
 
   // 👉 Scroll after message changes so the latest response stays visible above the composer.
   useEffect(() => {

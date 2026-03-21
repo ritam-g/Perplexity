@@ -70,22 +70,55 @@ const chatSlice = createSlice({
             state.chats[chatId].lastUpdated = new Date().toISOString()
         },
 
+        // ===== Promote Temp Chat to Real Chat =====
+        // 👉 Called after backend confirms the real MongoDB ID.
+        //    Runs INSIDE the reducer so it always sees the full, up-to-date streamed messages —
+        //    this sidesteps the stale closure problem in useChat.js.
+        promoteChat: (state, action) => {
+            const { tempId, realId, title } = action.payload;
+            const tempChat = state.chats[tempId];
+            if (!tempChat) return;
+
+            // Move everything (including fully-streamed messages) to the real ID
+            state.chats[realId] = {
+                ...tempChat,
+                id: realId,
+                title: title || tempChat.title,
+                lastUpdated: new Date().toISOString(),
+            };
+
+            // Clean up the temp entry
+            delete state.chats[tempId];
+
+            // Keep the active view pointing at the right chat
+            if (state.currentChatId === tempId) {
+                state.currentChatId = realId;
+            }
+        },
+
         // ===== Bulk State Updates =====
         setChats: (state, action) => {
             // 👉 Replace the chat map after list fetches or after hydrating one conversation.
-            state.chats = action.payload
+            // Preserve in-memory messages for any chat the API doesn't return message bodies for.
+            const incoming = action.payload;
+            Object.keys(incoming).forEach((id) => {
+                if (!incoming[id].messages?.length && state.chats[id]?.messages?.length) {
+                    incoming[id].messages = state.chats[id].messages;
+                }
+            });
+            state.chats = incoming;
         },
         setLoading: (state, action) => {
-            state.isLoading = action.payload
+            state.isLoading = action.payload;
         },
         setError: (state, action) => {
-            state.error = action.payload
+            state.error = action.payload;
         },
         setCurrentChatId: (state, action) => {
-            state.currentChatId = action.payload
-        }
+            state.currentChatId = action.payload;
+        },
     }
 })
 
-export const { setChats, setLoading, setError, setCurrentChatId, createNewChat, addMessage, appendToMessage } = chatSlice.actions
+export const { setChats, setLoading, setError, setCurrentChatId, createNewChat, addMessage, appendToMessage, promoteChat } = chatSlice.actions
 export default chatSlice.reducer;

@@ -6,10 +6,12 @@ import {
     addMessage,
     setChats,
     appendToMessage,
+    promoteChat,
 } from "../../../app/store/features/chat.slice";
 import { getChat, getMessage } from "../services/chat.api";
 import { initializedSocketConnection, getSocket } from "../services/chat.socket";
 import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useRef } from "react";
 
 // ===== Message Normalization =====
 // 👉 Backend can return `_id`, while the UI expects a consistent `id` for React keys and lookups.
@@ -27,6 +29,13 @@ export function useChat() {
     const dispatch = useDispatch();
     const chats = useSelector((state) => state.chat?.chats ?? {});
     const currentChatId = useSelector((state) => state.chat?.currentChatId ?? null);
+    
+    // 👉 Use a ref to always have the MOST RECENT chat state in callbacks
+    //    This prevents the "vanishing messages" bug caused by stale closures.
+    const chatsRef = useRef(chats);
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
 
     // ===== Socket Setup =====
     function initializeSocketConnection() {
@@ -82,11 +91,26 @@ export function useChat() {
                 socket.off("stream", onStream);
                 socket.off("done", onDone);
                 dispatch(setLoading(false));
-                
-                // If this was a new chat, updating ID safely via getChats
+
                 if (!chatId && payload?.chatId) {
-                    dispatch(setCurrentChatId(payload.chatId));
-                    handleGetChats();
+                    const realId = payload.chatId;
+                    const realTitle = payload.title;
+
+                    // 1. Promote chat in Redux — this happens ATOMICALLY and correctly
+                    //    uses the most up-to-date messages in the store.
+                    dispatch(promoteChat({
+                        tempId: activeChatId,
+                        realId: realId,
+                        title: realTitle || message.substring(0, 30),
+                    }));
+
+                    // 2. Point active view to real ID
+                    dispatch(setCurrentChatId(realId));
+
+                    // 3. Refresh sidebar list silently in background
+                    handleGetChats({ preserveCurrentId: true });
+                } else if (chatId) {
+                    handleGetChats({ preserveCurrentId: true });
                 }
             };
 
@@ -100,20 +124,21 @@ export function useChat() {
     }
 
     // ===== Sidebar History Fetch =====
-    async function handleGetChats() {
+    // preserveCurrentId: true  → only refresh sidebar list, never change the active chat
+    // preserveCurrentId: false (default) → same, we no longer auto-navigate on initial load
+    async function handleGetChats({ preserveCurrentId = true } = {}) {
         try {
             dispatch(setLoading(true));
 
             const data = await getChat();
 
             // 👉 Convert the API array into an object keyed by chat id for fast Redux access.
-            // 👉 Default to a new chat if none exist.
-            // it will be for reloding the page
             const nextChats = (data.chats || []).reduce((acc, chat) => {
                 acc[chat._id] = {
                     id: chat._id,
                     title: chat.title || "New Chat",
-                    messages: chats[chat._id]?.messages || [],
+                    // Preserve already-loaded messages so open conversations don't lose content.
+                    messages: chatsRef.current[chat._id]?.messages || [],
                     lastUpdated: chat.updatedAt || chat.createdAt || new Date().toISOString(),
                 };
                 return acc;
@@ -121,10 +146,10 @@ export function useChat() {
 
             dispatch(setChats(nextChats));
 
-            // 👉 Default to the newest available chat so the UI has an active thread.
-            if (!currentChatId && data.chats?.length) {
-                dispatch(setCurrentChatId(data.chats[0]._id));
-            }
+            // 👉 INTENTIONALLY removed auto-select:
+            // The user should always land on a blank "New Chat" state when they open the app.
+            // An existing chat is only opened when the user explicitly clicks one in the sidebar.
+
         } catch (error) {
             dispatch(setError(error.message));
         } finally {
@@ -139,11 +164,11 @@ export function useChat() {
 
             // 👉 Sidebar only stores summary data, so opening a chat hydrates full messages on demand.
             const data = await getMessage({ chatId });
-            const selectedChat = chats[chatId] || {};
+            const selectedChat = chatsRef.current[chatId] || {};
 
             // 👉 Merge the loaded conversation back into the existing map without losing other chats.
             dispatch(setChats({
-                ...chats,
+                ...chatsRef.current,
                 [chatId]: {
                     id: chatId,
                     title: selectedChat.title || "New Chat",
