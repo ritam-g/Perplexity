@@ -2,60 +2,88 @@ import React from 'react';
 import { PaperclipIcon, MicIcon, SendIcon } from '../icons';
 import FileUploadButton from './FileUplodeButton';
 
-export function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening, onFileSelect, selectedFile, onClearFile }) {
+export function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening, onFileSelect, selectedFile, onClearFile, showSuggestions, isLoading }) {
+  const suggestions = ["Explain AI Ethics", "Generate UI Grid", "Write Unit Tests", "Refactor Function"];
+
   return (
-    <form onSubmit={onSubmit} className='w-full flex-col flex rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,26,0.92),rgba(6,9,18,0.98))] shadow-[0_20px_60px_-20px_rgba(2,6,23,1)] backdrop-blur-xl'>
-      
-      {/* 📄 Display Selected File */}
-      {selectedFile && (
-        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-          <div className="flex items-center justify-center p-1.5 rounded bg-teal-500/20 text-teal-300">
-             📄
-          </div>
-          <span className="text-sm font-medium text-slate-300 flex-1 truncate">{selectedFile.name}</span>
-          <button
-            type="button"
-            onClick={onClearFile}
-            className="text-slate-500 hover:text-rose-400 transition text-sm font-bold w-6 h-6 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10"
-          >
-            ✕
-          </button>
+    <div className="w-full flex flex-col items-center">
+      {/* Suggestions Chips - Only show when chat is empty */}
+      {showSuggestions && !isLoading && (
+        <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar pb-2 w-full max-w-3xl justify-center animate-message">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onChange({ target: { value: s } })}
+              className="flex-shrink-0 px-4 py-1.5 border border-outline-variant/10 hover:border-primary/40 hover:bg-primary/5 rounded-full text-xs font-medium text-on-surface-variant transition-all backdrop-blur-md active:scale-95"
+            >
+              {s}
+            </button>
+          ))}
         </div>
       )}
 
-      <div className='flex items-center gap-3 px-4 py-3'>
-        <FileUploadButton onFileSelect={onFileSelect} />
+      <form onSubmit={onSubmit} className="w-full max-w-3xl flex flex-col gap-3">
+        {/* Selected File Badge */}
+        {selectedFile && (
+          <div className="flex items-center gap-2 self-start bg-secondary/10 border border-secondary/20 px-3 py-1.5 rounded-full animate-message">
+            <span className="material-symbols-outlined text-[14px] text-secondary">description</span>
+            <span className="text-[12px] font-semibold text-secondary truncate max-w-[200px]">{selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={onClearFile}
+              className="ml-1 text-secondary/60 hover:text-rose-400 transition"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        )}
 
-        <div className='flex flex-1 items-center rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 transition focus-within:border-teal-400/50'>
+        <div className={`p-2 rounded-2xl border transition-all duration-500 flex items-center gap-2 relative z-10 ${
+          isLoading 
+            ? 'bg-transparent border-transparent shadow-none opacity-20 pointer-events-none' 
+            : 'glass-panel border-outline-variant/10 shadow-2xl focus-within:border-primary/40 focus-within:shadow-[0_0_40px_rgba(138,235,255,0.12)] focus-within:bg-surface-container-high/60'
+        }`}>
+          <FileUploadButton onFileSelect={onFileSelect} />
+          
           <input
-            type='text'
+            type="text"
             value={chatInput}
             onChange={onChange}
-            placeholder='Type your message...'
-            className='w-full bg-transparent text-[15px] text-white outline-none placeholder:text-slate-400'
+            disabled={isLoading}
+            placeholder={isLoading ? "Doraemon is thinking..." : "Message Doraemon..."}
+            className="bg-transparent border-none ring-0 focus:ring-0 focus:outline-none flex-1 text-on-surface placeholder-slate-500 py-3 font-medium text-[15px] disabled:placeholder-slate-700"
           />
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMicClick}
+              disabled={isLoading}
+              className={`p-2.5 transition-all duration-300 rounded-xl ${
+                isListening 
+                  ? 'text-rose-400 glow-pulse' 
+                  : 'text-slate-400 hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
+              <span className="material-symbols-outlined">{isListening ? 'graphic_eq' : 'mic'}</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={disabled || isLoading}
+              className="w-11 h-11 bg-gradient-to-tr from-primary to-primary-container rounded-xl flex items-center justify-center text-on-primary shadow-lg shadow-primary/20 hover:scale-[1.05] active:scale-[0.95] transition-all duration-300 disabled:opacity-30 disabled:hover:scale-100"
+            >
+              <span className="material-symbols-outlined font-bold">arrow_upward</span>
+            </button>
+          </div>
         </div>
-
-        <button
-          type='button'
-          onClick={onMicClick}
-          className={`group flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300 ${isListening 
-            ? 'bg-rose-500 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse' 
-            : 'text-slate-400 hover:bg-white/10 hover:text-white'
-          }`}
-          aria-label={isListening ? 'Stop listening' : 'Start voice input'}
-        >
-          <MicIcon />
-        </button>
-
-        <button
-          type='submit'
-          disabled={disabled}
-          className='flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100'
-        >
-          <SendIcon />
-        </button>
-      </div>
-    </form>
+        {!isLoading && (
+          <p className="text-[10px] text-center mt-3 text-slate-500 font-medium tracking-wide animate-message">
+            Doraemon can make mistakes. Verify important information.
+          </p>
+        )}
+      </form>
+    </div>
   );
 }
