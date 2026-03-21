@@ -2,7 +2,7 @@ import React from 'react';
 import { PaperclipIcon, MicIcon, SendIcon } from '../icons';
 import FileUploadButton from './FileUplodeButton';
 
-export function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening, onFileSelect, selectedFile, onClearFile, showSuggestions, isLoading }) {
+export const Composer = React.memo(({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening, onFileSelect, selectedFile, onClearFile, showSuggestions, isLoading }) => {
   const suggestions = ["Explain AI Ethics", "Generate UI Grid", "Write Unit Tests", "Refactor Function"];
 
   return (
@@ -86,4 +86,4 @@ export function Composer({ chatInput, onChange, onSubmit, disabled, onMicClick, 
       </form>
     </div>
   );
-}
+});

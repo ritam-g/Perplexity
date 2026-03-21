@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCurrentChatId } from '../../../app/store/features/chat.slice';
 import { useChat } from '../hooks/useChat.js';
@@ -87,13 +87,14 @@ const Dashboard = () => {
     setSelectedFile(null);
   };
 
-  const handleOpenChat = (chatId) => chat.handleOpenChat(chatId);
-  const handleNewChat = () => {
+  const handleOpenChat = useCallback((chatId) => chat.handleOpenChat(chatId), [chat]);
+  
+  const handleNewChat = useCallback(() => {
     dispatch(setCurrentChatId(null));
     setChatInput('');
-  };
+  }, [dispatch]);
 
-  const handleCopyMessage = async (message) => {
+  const handleCopyMessage = useCallback(async (message) => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopiedMessageId(message.id);
@@ -101,7 +102,23 @@ const Dashboard = () => {
     } catch {
       setCopiedMessageId(null);
     }
-  };
+  }, []);
+
+  const handleInputChange = useCallback((e) => {
+    setChatInput(e.target.value);
+  }, []);
+
+  const handleToggleListening = useCallback(() => {
+    toggleListening();
+  }, [toggleListening]);
+
+  const handleFileSelect = useCallback((file) => {
+    setSelectedFile(file);
+  }, []);
+
+  const handleClearFile = useCallback(() => {
+    setSelectedFile(null);
+  }, []);
 
   return (
     <div className="flex h-screen w-full relative bg-background text-on-background overflow-hidden selection:bg-primary/30">
@@ -224,14 +241,14 @@ const Dashboard = () => {
                 chatInput={chatInput}
                 showSuggestions={activeMessages.length === 0}
                 isLoading={isLoading}
-                onChange={(e) => setChatInput(e.target.value)}
+                onChange={handleInputChange}
                 onSubmit={handleSubmitMessage}
                 disabled={!chatInput.trim() && !selectedFile || isLoading}
-                onMicClick={() => toggleListening()}
+                onMicClick={handleToggleListening}
                 isListening={listening}
-                onFileSelect={setSelectedFile}
+                onFileSelect={handleFileSelect}
                 selectedFile={selectedFile}
-                onClearFile={() => setSelectedFile(null)}
+                onClearFile={handleClearFile}
               />
           </div>
         </div>

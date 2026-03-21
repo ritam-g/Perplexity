@@ -30,7 +30,7 @@ function MessageActions({ message, copiedMessageId, onCopy }) {
   );
 }
 
-export function ChatMessage({ message, copiedMessageId, onCopy }) {
+export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => {
   const isUser = message.role === 'user';
 
   return (
@@ -92,4 +92,4 @@ export function ChatMessage({ message, copiedMessageId, onCopy }) {
       </div>
     </motion.article>
   );
-}
+});

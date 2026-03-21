@@ -24,10 +24,10 @@
 }
 
 body {
-  height: 100vh;
+  min-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
   background-color: var(--background);
   color: var(--on-surface);
   font-family: 'Inter', sans-serif;
@@ -35,7 +35,24 @@ body {
 }
 
 #root {
-  height: 100vh;
+  min-height: 100vh;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
 
 /* Glass-panel class for that premium blur effect */

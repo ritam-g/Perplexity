@@ -10,7 +10,7 @@ function truncateTitle(title = '') {
   return words.slice(0, 5).join(' ') + '…';
 }
 
-export function SidebarChatItem({ chatItem, isActive, onClick }) {
+export const SidebarChatItem = React.memo(({ chatItem, isActive, onClick }) => {
   const displayTitle = truncateTitle(chatItem.title);
 
   return (
@@ -32,4 +32,4 @@ export function SidebarChatItem({ chatItem, isActive, onClick }) {
       )}
     </motion.button>
   );
-}
+});

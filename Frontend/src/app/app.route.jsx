@@ -1,61 +1,57 @@
-import { createBrowserRouter, useNavigate } from 'react-router'
-import Login from '../features/auth/pages/Login'
-import Register from '../features/auth/pages/Register'
-import Dashboard from '../features/chat/pages/Dashboard'
-import { useSelector } from 'react-redux'
-import { useEffect } from 'react'
+import React, { Suspense } from 'react'
+import { createBrowserRouter } from 'react-router'
+import { ProtectedRoute, PageLoader } from './route-utils'
 
-/** ProtectedRoute - Fixed async handling */
-function ProtectedRoute({ children }) {
-    const navigate = useNavigate()
-    const { user, loading } = useSelector(state => state.auth)
-    
-    useEffect(() => {
-        if (!loading && !user) {
-            navigate('/login')
-        }
-    }, [user, loading, navigate])
-
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-white gap-4">
-                <div className="w-12 h-12 border-4 border-[#31b8c6] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-zinc-400 font-medium tracking-wider animate-pulse transition-all">Authenticating...</p>
-            </div>
-        )
-    }
-
-    if (!user) {
-        return null // Redirect by useEffect
-    }
-
-    return children
-}
+// Lazy loaded pages
+const LandingPage = React.lazy(() => import('../features/landing/pages/LandingPage'))
+const Dashboard = React.lazy(() => import('../features/chat/pages/Dashboard'))
+const Login = React.lazy(() => import('../features/auth/pages/Login'))
+const Register = React.lazy(() => import('../features/auth/pages/Register'))
 
 export const router = createBrowserRouter([
     {
         path: '/',
         element: (
+          <Suspense fallback={<PageLoader />}>
+            <LandingPage />
+          </Suspense>
+        )
+    },
+    {
+        path: '/chat',
+        element: (
+          <Suspense fallback={<PageLoader />}>
             <ProtectedRoute>
                 <Dashboard/>
             </ProtectedRoute>
+          </Suspense>
         )
     },
     {
         path: '/dashboard',
         element: (
+          <Suspense fallback={<PageLoader />}>
             <ProtectedRoute>
                 <Dashboard />
             </ProtectedRoute>
+          </Suspense>
         )
     },
     {
         path: '/login',
-        element: <Login />
+        element: (
+            <Suspense fallback={<PageLoader />}>
+                <Login />
+            </Suspense>
+        )
     },
     {
         path: '/register',
-        element: <Register />
+        element: (
+            <Suspense fallback={<PageLoader />}>
+                <Register />
+            </Suspense>
+        )
     }
 ])
 
