@@ -1,6 +1,8 @@
 import chatModel from "../models/chat.model.js";
 import messageModel from "../models/message.model.js";
-import { chatWithMistralAiModel, messageTitleGenerator } from "../services/ai.service.js";
+import { messageTitleGenerator } from "../services/ai.service.js";
+import { ragPipeline } from "../services/rag/pipeline.service.js";
+import { extractTextFromFile } from "../utils/extractText.js";
 
 /**
  * @description Send message to AI
@@ -48,28 +50,32 @@ export async function sendMessageController(req, res) {
       .select("role content")
       .lean();
 
-    // console.log("✅ DB Messages count:", dbMessages.length, dbMessages);
-
     if (dbMessages.length === 0) {
       throw new Error("No messages found after save");
     }
 
     /* =============================
-       SEND TO AI
+       HANDLE FILE CONTEXT (IF ANY)
     ============================== */
-    const { extractTextFromFile } = await import("../utils/extractText.js");
+    let queryForSearch = message; // We only search for the actual question
+    let fileContext = "";
 
     if (req.file) {
+      // Step: Extract text from uploaded document
       const fileText = await extractTextFromFile(req.file);
-      const lastMsg = dbMessages[dbMessages.length - 1];
-
-      // Inject extracted text so AI can query it
-      lastMsg.content = `File Content:\n${fileText}\n\nUser Question:\n${lastMsg.content}`;
+      fileContext = `[Uploaded File Content]:\n${fileText}\n\n`;
+      // Note: We do NOT add the whole file to queryForSearch to avoid vector noise
     }
 
-    const aiResponse = await chatWithMistralAiModel({
-      message: dbMessages,
-    });
+    /* =============================
+       SEND TO RAG PIPELINE
+    ============================== */
+    
+    // History contains previous turns
+    const history = dbMessages.slice(0, -1); 
+    
+    // We send 'message' as the search query, and 'fileContext' as secondary info
+    const aiResponse = await ragPipeline(queryForSearch, history, fileContext);
 
     /* =============================
        SAVE AI RESPONSE
