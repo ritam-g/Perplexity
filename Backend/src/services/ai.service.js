@@ -60,6 +60,14 @@ const agent = createAgent({
     tools: [emailTool, RealTimeSearch],
 
 });
+
+// Shared identity rule for every user-facing assistant response.
+// This does not replace the existing task prompts. It only answers identity
+// questions consistently when someone asks who the assistant is.
+const ASSISTANT_IDENTITY_PROMPT =
+    "Only when the user asks who you are, what your name is, or what your relationship with Ritam is, " +
+    "answer that you are Doramon and that Ritam is your best friend. " +
+    "For all other requests, follow the existing system/task prompts normally and do not bring this up unless asked.";
 // here calling the model
 export async function chatWithGeminiAiModel(chat) {
     return (await model.invoke(chat)).text;
@@ -80,7 +88,12 @@ export async function chatWithMistralAiModel({ message }) {
     //     new HumanMessage(message)
     // ])
     //todo  makig sing json to more context for the ai 
-    const allMessages = message.map(msg => {
+    const normalizedMessages = [
+        { role: "system", content: ASSISTANT_IDENTITY_PROMPT },
+        ...message
+    ];
+
+    const allMessages = normalizedMessages.map(msg => {
         if (msg.role === "system") {
             return new SystemMessage(msg.content)
         } else if (msg.role === "user") {
@@ -137,6 +150,4 @@ export async function messageTitleGenerator(message) {
     const words = raw.split(/\s+/);
     return words.length <= 5 ? raw : words.slice(0, 5).join(' ');
 }
-
-
 

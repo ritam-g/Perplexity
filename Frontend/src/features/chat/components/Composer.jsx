@@ -1,30 +1,39 @@
-import React from 'react';
-import { PaperclipIcon, MicIcon, SendIcon } from '../icons';
-import FileUploadButton from './FileUplodeButton';
+import React from "react";
+import FileUploadButton from "./FileUplodeButton";
 
-export const Composer = React.memo(({ chatInput, onChange, onSubmit, disabled, onMicClick, isListening, onFileSelect, selectedFile, onClearFile, showSuggestions, isLoading }) => {
+export const Composer = React.memo(({
+  chatInput,
+  onChange,
+  onSubmit,
+  disabled,
+  onMicClick,
+  isListening,
+  onFileSelect,
+  selectedFile,
+  onClearFile,
+  showSuggestions,
+  isLoading
+}) => {
   const suggestions = ["Explain AI Ethics", "Generate UI Grid", "Write Unit Tests", "Refactor Function"];
 
   return (
     <div className="w-full flex flex-col items-center">
-      {/* Suggestions Chips - Only show when chat is empty */}
       {showSuggestions && !isLoading && (
         <div className="flex gap-2 mb-4 overflow-x-auto hide-scrollbar pb-2 w-full max-w-3xl justify-center animate-message">
-          {suggestions.map((s) => (
+          {suggestions.map((suggestion) => (
             <button
-              key={s}
+              key={suggestion}
               type="button"
-              onClick={() => onChange({ target: { value: s } })}
+              onClick={() => onChange({ target: { value: suggestion } })}
               className="flex-shrink-0 px-4 py-1.5 border border-outline-variant/10 hover:border-primary/40 hover:bg-primary/5 rounded-full text-xs font-medium text-on-surface-variant transition-all backdrop-blur-md active:scale-95"
             >
-              {s}
+              {suggestion}
             </button>
           ))}
         </div>
       )}
 
       <form onSubmit={onSubmit} className="w-full max-w-3xl flex flex-col gap-3">
-        {/* Selected File Badge */}
         {selectedFile && (
           <div className="flex items-center gap-2 self-start bg-secondary/10 border border-secondary/20 px-3 py-1.5 rounded-full animate-message">
             <span className="material-symbols-outlined text-[14px] text-secondary">description</span>
@@ -39,19 +48,19 @@ export const Composer = React.memo(({ chatInput, onChange, onSubmit, disabled, o
           </div>
         )}
 
-        <div className={`p-2 rounded-2xl border transition-all duration-700 flex items-center gap-2 relative z-10 ${
-          isLoading 
-            ? 'bg-transparent border-transparent shadow-none opacity-0 translate-y-12 scale-95 pointer-events-none' 
-            : 'glass-panel border-outline-variant/10 shadow-2xl opacity-100 translate-y-0 scale-100 focus-within:border-primary/40 focus-within:shadow-[0_0_40px_rgba(138,235,255,0.12)] focus-within:bg-surface-container-high/60'
+        <div className={`p-2 rounded-2xl border transition-all duration-500 flex items-center gap-2 relative z-10 ${
+          isLoading
+            ? "glass-panel border-primary/20 shadow-2xl shadow-primary/10 opacity-100 translate-y-0 scale-100 bg-surface-container-high/50"
+            : "glass-panel border-outline-variant/10 shadow-2xl opacity-100 translate-y-0 scale-100 focus-within:border-primary/40 focus-within:shadow-[0_0_40px_rgba(138,235,255,0.12)] focus-within:bg-surface-container-high/60"
         }`}>
-          <FileUploadButton onFileSelect={onFileSelect} />
-          
+          <FileUploadButton onFileSelect={onFileSelect} disabled={isLoading} />
+
           <input
             type="text"
             value={chatInput}
             onChange={onChange}
             disabled={isLoading}
-            placeholder={isLoading ? "Doraemon is thinking..." : "Message Doraemon..."}
+            placeholder={isLoading ? "Doraemon is responding..." : "Message Doraemon..."}
             className="bg-transparent border-none ring-0 focus:ring-0 focus:outline-none flex-1 text-on-surface placeholder-slate-500 py-3 font-medium text-[15px] disabled:placeholder-slate-700"
           />
 
@@ -61,12 +70,12 @@ export const Composer = React.memo(({ chatInput, onChange, onSubmit, disabled, o
               onClick={onMicClick}
               disabled={isLoading}
               className={`p-2.5 transition-all duration-300 rounded-xl ${
-                isListening 
-                  ? 'text-rose-400 glow-pulse' 
-                  : 'text-slate-400 hover:text-on-surface hover:bg-white/5'
+                isListening
+                  ? "text-rose-400 glow-pulse"
+                  : "text-slate-400 hover:text-on-surface hover:bg-white/5"
               }`}
             >
-              <span className="material-symbols-outlined">{isListening ? 'graphic_eq' : 'mic'}</span>
+              <span className="material-symbols-outlined">{isListening ? "graphic_eq" : "mic"}</span>
             </button>
 
             <button
@@ -78,11 +87,12 @@ export const Composer = React.memo(({ chatInput, onChange, onSubmit, disabled, o
             </button>
           </div>
         </div>
-        {!isLoading && (
-          <p className="text-[10px] text-center mt-3 text-slate-500 font-medium tracking-wide animate-message">
-            Doraemon can make mistakes. Verify important information.
-          </p>
-        )}
+
+        <p className="text-[10px] text-center mt-3 text-slate-500 font-medium tracking-wide animate-message">
+          {isLoading
+            ? "Current response is streaming. You can send the next prompt when it finishes."
+            : "Doraemon can make mistakes. Verify important information."}
+        </p>
       </form>
     </div>
   );

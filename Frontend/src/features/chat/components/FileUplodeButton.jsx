@@ -1,11 +1,12 @@
 import React, { useRef } from "react";
 import { PaperclipIcon } from "../icons";
 
-const FileUploadButton = ({ onFileSelect }) => {
+const FileUploadButton = ({ onFileSelect, disabled = false }) => {
   const fileInputRef = useRef(null);
 
   const handleClick = () => {
-    fileInputRef.current.click(); // 👈 open file picker
+    if (disabled) return;
+    fileInputRef.current?.click();
   };
 
   const handleFileChange = (e) => {
@@ -13,23 +14,22 @@ const FileUploadButton = ({ onFileSelect }) => {
     if (file && onFileSelect) {
       onFileSelect(file);
     }
-    // Clear the input so selecting the same file again works
+
+    // Clear the input so selecting the same file again still triggers change.
     e.target.value = null;
   };
 
   return (
     <div className="flex items-center gap-3">
-      
-      {/* 📎 Button */}
       <button
         type="button"
         onClick={handleClick}
-        className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white md:flex"
+        disabled={disabled}
+        className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400 md:flex"
       >
         <PaperclipIcon />
       </button>
 
-      {/* 🔥 Hidden Input */}
       <input
         type="file"
         ref={fileInputRef}
