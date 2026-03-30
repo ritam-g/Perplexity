@@ -40,4 +40,6 @@ authRouter.post("/login",loginValidation,userLoginController)
  * @access - Private
  */
 authRouter.get("/getme",authVerifyMiddleware,getMeUserController)
+
+
 export default authRouter;
