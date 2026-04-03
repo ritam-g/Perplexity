@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCurrentChatId } from '../../../app/store/features/chat.slice';
 import { useChat } from '../hooks/useChat.js';
@@ -10,12 +9,13 @@ import { setTranscript } from '../../../app/store/features/voice.slice.js';
 import { SidebarChatItem } from '../components/SidebarChatItem';
 import { ChatMessage } from '../components/ChatMessage';
 import { WelcomeCard } from '../components/WelcomeCard';
-import { LoadingMessage } from '../components/LoadingMessage';
 import { VoiceOverlay } from '../components/VoiceOverlay';
 import { Composer } from '../components/Composer';
 
 // Icons
 import { BotIcon } from '../icons';
+
+const AUTO_SCROLL_THRESHOLD = 56;
 
 const Dashboard = () => {
   const chat = useChat();
@@ -23,6 +23,7 @@ const Dashboard = () => {
   const [chatInput, setChatInput] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [copiedMessageId, setCopiedMessageId] = useState(null);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   
   const chats = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
@@ -32,8 +33,13 @@ const Dashboard = () => {
   const { transcript, listening } = useSelector((state) => state.voice);
   const { stopListening, toggleListening } = useSpeechRecognition();
   
-  const messagesEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
   const prevListeningRef = useRef(listening);
+  const scrollFrameRef = useRef(null);
+  const isAutoScrollRef = useRef(true);
+  const lastKnownScrollTopRef = useRef(0);
+  const messageCountRef = useRef(0);
+  const touchStartYRef = useRef(null);
 
   // Sync transcript to input field
   useEffect(() => {
@@ -68,15 +74,183 @@ const Dashboard = () => {
   }, [chats]);
 
   const activeMessages = chats[currentChatId]?.messages || [];
+  const hasMessages = activeMessages.length > 0;
   const rawTitle = chats[currentChatId]?.title || 'New Conversation';
   const activeTitle = (() => {
     const words = rawTitle.trim().split(/\s+/);
     return words.length <= 5 ? rawTitle : words.slice(0, 5).join(' ') + '…';
   })();
   
+  // Keep the latest count in a ref so the scroll listener can stay stable
+  // while streamed tokens update the Redux state.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [currentChatId, activeMessages.length, isLoading]);
+    messageCountRef.current = activeMessages.length;
+  }, [activeMessages.length]);
+
+  const isAtBottom = useCallback((container) => {
+    if (!container) return true;
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+
+    return distanceFromBottom < AUTO_SCROLL_THRESHOLD;
+  }, []);
+
+  const handleManualScrollIntent = useCallback(() => {
+    if (scrollFrameRef.current) {
+      window.cancelAnimationFrame(scrollFrameRef.current);
+      scrollFrameRef.current = null;
+    }
+
+    isAutoScrollRef.current = false;
+    setShowJumpToLatest(messageCountRef.current > 0);
+  }, []);
+
+  const syncScrollState = useCallback(() => {
+    const container = chatScrollRef.current;
+    if (!container) return;
+
+    const currentScrollTop = container.scrollTop;
+    const userScrolledUp = currentScrollTop < lastKnownScrollTopRef.current;
+    lastKnownScrollTopRef.current = currentScrollTop;
+
+    if (userScrolledUp) {
+      if (scrollFrameRef.current) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+
+      isAutoScrollRef.current = false;
+      setShowJumpToLatest(messageCountRef.current > 0);
+      return;
+    }
+
+    const shouldAutoScroll = isAtBottom(container);
+
+    if (shouldAutoScroll) {
+      isAutoScrollRef.current = true;
+      setShowJumpToLatest(false);
+      return;
+    }
+
+    setShowJumpToLatest(!isAutoScrollRef.current && messageCountRef.current > 0);
+  }, [isAtBottom]);
+
+  const scrollToBottom = useCallback((behavior = 'auto') => {
+    const container = chatScrollRef.current;
+    if (!container) return;
+
+    if (scrollFrameRef.current) {
+      window.cancelAnimationFrame(scrollFrameRef.current);
+    }
+
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      const nextContainer = chatScrollRef.current;
+      if (!nextContainer) return;
+
+      if (behavior === 'smooth') {
+        nextContainer.scrollTo({
+          top: nextContainer.scrollHeight,
+          behavior: 'smooth',
+        });
+      } else {
+        nextContainer.scrollTop = nextContainer.scrollHeight;
+      }
+
+      lastKnownScrollTopRef.current = nextContainer.scrollTop;
+      isAutoScrollRef.current = true;
+      setShowJumpToLatest(false);
+      scrollFrameRef.current = null;
+    });
+  }, []);
+
+  const lastMessageSignature = useMemo(() => {
+    const lastMessage = activeMessages[activeMessages.length - 1];
+
+    if (!lastMessage) {
+      return `${currentChatId || 'empty'}:0`;
+    }
+
+    return [
+      currentChatId || 'draft',
+      activeMessages.length,
+      lastMessage.id,
+      lastMessage.content.length,
+      lastMessage.isLoading ? 'loading' : 'ready',
+    ].join(':');
+  }, [activeMessages, currentChatId]);
+
+  // Step 1: Track whether the reader is still near the bottom before
+  // auto-scrolling again.
+  useEffect(() => {
+    const container = chatScrollRef.current;
+    if (!container) return undefined;
+
+    syncScrollState();
+
+    const handleScroll = () => {
+      syncScrollState();
+    };
+    const handleWheel = (event) => {
+      if (event.deltaY < 0) {
+        handleManualScrollIntent();
+      }
+    };
+    const handleTouchStart = (event) => {
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+    };
+    const handleTouchMove = (event) => {
+      const nextY = event.touches[0]?.clientY ?? null;
+
+      if (touchStartYRef.current !== null && nextY !== null && nextY > touchStartYRef.current) {
+        handleManualScrollIntent();
+      }
+
+      touchStartYRef.current = nextY;
+    };
+    const handleTouchEnd = () => {
+      touchStartYRef.current = null;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: true });
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [currentChatId, handleManualScrollIntent, syncScrollState]);
+
+  // Step 2: New conversations should open at the latest message instead of
+  // carrying over the previous scroll lock.
+  useEffect(() => {
+    isAutoScrollRef.current = true;
+    setShowJumpToLatest(false);
+    scrollToBottom();
+  }, [currentChatId, scrollToBottom]);
+
+  // Step 3: Streamed tokens only move the viewport when the user is following
+  // the latest response. Otherwise we preserve their manual scroll position.
+  useEffect(() => {
+    if (!hasMessages) return;
+    if (isAutoScrollRef.current) {
+      scrollToBottom();
+    }
+  }, [hasMessages, lastMessageSignature, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current) {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
 
   const handleSubmitMessage = (event) => {
     if (event) event.preventDefault();
@@ -121,6 +295,10 @@ const Dashboard = () => {
   const handleClearFile = useCallback(() => {
     setSelectedFile(null);
   }, []);
+
+  const handleJumpToLatest = useCallback(() => {
+    scrollToBottom('smooth');
+  }, [scrollToBottom]);
 
   return (
     <div className="flex h-screen w-full relative bg-background text-on-background overflow-hidden selection:bg-primary/30">
@@ -215,12 +393,15 @@ const Dashboard = () => {
         </header>
 
         {/* Chat Container */}
-        <section className="flex-1 overflow-y-auto pt-28 pb-40 px-4 md:px-8 hide-scrollbar scroll-smooth">
+        <section
+          ref={chatScrollRef}
+          className="chat-scroll-shell flex-1 overflow-y-auto pt-28 pb-40 px-4 md:px-8 hide-scrollbar"
+        >
           <div className="max-w-4xl mx-auto">
-            {activeMessages.length === 0 ? (
+            {!hasMessages ? (
                <WelcomeCard />
             ) : (
-              <div className="space-y-10 animate-message">
+              <div className="chat-scroll-content space-y-10 animate-message">
                 {activeMessages.map((message) => (
                   <ChatMessage
                     key={message.id}
@@ -229,18 +410,27 @@ const Dashboard = () => {
                     onCopy={handleCopyMessage}
                   />
                 ))}
-                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
         </section>
 
+        {showJumpToLatest && hasMessages && (
+          <div className="pointer-events-none fixed bottom-36 left-0 right-0 md:left-64 z-40 flex justify-center px-4">
+            <button
+              type="button"
+              onClick={handleJumpToLatest}
+              className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-surface-container-high/95 px-4 py-2 text-sm font-semibold text-primary shadow-2xl shadow-black/20 backdrop-blur-xl transition hover:border-primary/40 hover:bg-surface-container-highest"
+            >
+              <span className="material-symbols-outlined text-base">south</span>
+              New messages
+            </button>
+          </div>
+        )}
+
         {/* Bottom Floating Input Shell */}
         <div className="fixed bottom-0 right-0 left-0 md:left-64 p-8 bg-gradient-to-t from-background via-background/90 to-transparent pointer-events-none">
           <div className="max-w-4xl mx-auto pointer-events-auto flex flex-col gap-4">
-             <AnimatePresence>
-                {isLoading && <LoadingMessage key="loading-msg" />}
-             </AnimatePresence>
              {chatError && (
                <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300 shadow-lg">
                  {chatError}

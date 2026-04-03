@@ -76,6 +76,17 @@ body {
   scrollbar-width: none;
 }
 
+.chat-scroll-shell {
+  overflow-anchor: none;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.chat-scroll-content {
+  min-height: 100%;
+  overflow-anchor: none;
+}
+
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

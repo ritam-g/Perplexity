@@ -1,13 +1,14 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { BotIcon, UserIcon, CopyIcon } from '../icons';
+import { BotIcon, UserIcon } from '../icons';
+import { AiTypingLoader } from './AiTypingLoader';
 import { itemMotion } from '../utils/motion';
 
 function MessageActions({ message, copiedMessageId, onCopy }) {
   const isCopied = copiedMessageId === message.id;
 
-  if (message.role === 'user') {
+  if (message.role === 'user' || message.isLoading) {
     return null;
   }
 
@@ -32,10 +33,22 @@ function MessageActions({ message, copiedMessageId, onCopy }) {
 
 export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => {
   const isUser = message.role === 'user';
+  const isAssistantLoading = !isUser && message.isLoading;
+  const hasStreamingContent = isAssistantLoading && Boolean(message.content);
+  const bubbleClassName = isUser
+    ? 'bg-secondary-container border border-secondary/20 text-on-secondary-container rounded-2xl rounded-tr-sm max-w-[85%]'
+    : isAssistantLoading
+      ? hasStreamingContent
+        ? 'bg-surface-container border border-outline-variant/10 text-on-background rounded-2xl rounded-tl-sm w-full shadow-sm'
+        : 'bg-surface-container border border-outline-variant/10 text-on-background rounded-2xl rounded-tl-sm max-w-full md:max-w-[28rem] shadow-sm'
+      : 'bg-surface-container border border-outline-variant/10 text-on-background rounded-2xl rounded-tl-sm w-full shadow-sm';
 
   return (
     <motion.article
       {...itemMotion}
+      // Only animate position changes so streamed content can grow naturally
+      // without re-animating the bubble height on every token.
+      layout="position"
       className={`flex gap-4 group ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
     >
       <div className="flex-shrink-0 mt-1">
@@ -54,41 +67,80 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
           <span className="text-[10px] text-slate-500 font-medium tracking-tight">System v2.4</span>
         </div>
 
-        <div
-          className={`inline-block p-5 text-[15px] leading-relaxed shadow-lg ${isUser
-            ? 'bg-secondary-container border border-secondary/20 text-on-secondary-container rounded-2xl rounded-tr-sm max-w-[85%]'
-            : 'bg-surface-container border border-outline-variant/10 text-on-background rounded-2xl rounded-tl-sm w-full shadow-sm'
-            }`}
+        <motion.div
+          className={`inline-block p-5 text-[15px] leading-relaxed shadow-lg overflow-hidden ${bubbleClassName}`}
         >
-          {isUser ? (
-            <p className='whitespace-pre-wrap'>{message.content}</p>
-          ) : !message.content ? (
-            <div className='flex h-[1.5rem] w-8 items-center justify-center gap-1.5'>
-              <span className='h-2 w-2 rounded-full bg-primary/60 animate-bounce' style={{ animationDelay: '-0.3s' }} />
-              <span className='h-2 w-2 rounded-full bg-primary/60 animate-bounce' style={{ animationDelay: '-0.15s' }} />
-              <span className='h-2 w-2 rounded-full bg-primary/60 animate-bounce' />
-            </div>
-          ) : (
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className='mb-3 last:mb-0'>{children}</p>,
-                ul: ({ children }) => <ul className='mb-3 list-disc space-y-1 pl-5 last:mb-0'>{children}</ul>,
-                ol: ({ children }) => <ol className='mb-3 list-decimal space-y-1 pl-5 last:mb-0'>{children}</ol>,
-                code: ({ children }) => <code className='rounded bg-primary/10 px-1.5 py-0.5 text-primary text-sm font-medium'>{children}</code>,
-                pre: ({ children }) => (
-                   <div className="relative group/code my-4">
-                     <pre className='overflow-x-auto rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-sm scrollbar-thin scrollbar-thumb-white/10'>{children}</pre>
-                   </div>
-                ),
-                strong: ({ children }) => <strong className='font-bold text-white'>{children}</strong>,
-                a: ({ href, children }) => <a href={href} className="text-primary hover:underline underline-offset-4 decoration-2" target="_blank" rel="noreferrer">{children}</a>
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          )}
-          <MessageActions message={message} copiedMessageId={copiedMessageId} onCopy={onCopy} />
-        </div>
+          <AnimatePresence mode="wait" initial={false}>
+            {isUser ? (
+              <motion.p
+                key="user-content"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className='whitespace-pre-wrap'
+              >
+                {message.content}
+              </motion.p>
+            ) : isAssistantLoading ? (
+              hasStreamingContent ? (
+                <motion.div
+                  key="assistant-streaming"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                >
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div
+                    className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+                    aria-label="AI is typing"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse" />
+                    <span>Streaming</span>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="assistant-loader"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                >
+                  <AiTypingLoader />
+                </motion.div>
+              )
+            ) : (
+              <motion.div
+                key="assistant-content"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+              >
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className='mb-3 last:mb-0'>{children}</p>,
+                    ul: ({ children }) => <ul className='mb-3 list-disc space-y-1 pl-5 last:mb-0'>{children}</ul>,
+                    ol: ({ children }) => <ol className='mb-3 list-decimal space-y-1 pl-5 last:mb-0'>{children}</ol>,
+                    code: ({ children }) => <code className='rounded bg-primary/10 px-1.5 py-0.5 text-primary text-sm font-medium'>{children}</code>,
+                    pre: ({ children }) => (
+                       <div className="relative group/code my-4">
+                         <pre className='overflow-x-auto rounded-xl border border-outline-variant/10 bg-surface-container-low p-4 text-sm scrollbar-thin scrollbar-thumb-white/10'>{children}</pre>
+                       </div>
+                    ),
+                    strong: ({ children }) => <strong className='font-bold text-white'>{children}</strong>,
+                    a: ({ href, children }) => <a href={href} className="text-primary hover:underline underline-offset-4 decoration-2" target="_blank" rel="noreferrer">{children}</a>
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+                <MessageActions message={message} copiedMessageId={copiedMessageId} onCopy={onCopy} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
     </motion.article>
   );

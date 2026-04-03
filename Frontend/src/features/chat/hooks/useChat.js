@@ -6,6 +6,8 @@ import {
     addMessage,
     setChats,
     appendToMessage,
+    resolveAssistantMessage,
+    failAssistantMessage,
     promoteChat,
 } from "../../../app/store/features/chat.slice";
 import { getChat, getMessage, sendMessage as sendMessageRequest } from "../services/chat.api";
@@ -20,6 +22,7 @@ function mapMessages(messages = []) {
         id: message._id || message.id,
         role: message.role,
         content: message.content,
+        isLoading: Boolean(message.isLoading),
     }));
 }
 
@@ -32,14 +35,66 @@ function getErrorMessage(error) {
 export function useChat() {
     const dispatch = useDispatch();
     const chats = useSelector((state) => state.chat?.chats ?? {});
-    const currentChatId = useSelector((state) => state.chat?.currentChatId ?? null);
-    
     // 👉 Use a ref to always have the MOST RECENT chat state in callbacks
     //    This prevents the "vanishing messages" bug caused by stale closures.
     const chatsRef = useRef(chats);
+    const streamBufferRef = useRef("");
+    const streamedContentRef = useRef("");
+    const streamFrameRef = useRef(null);
     useEffect(() => {
         chatsRef.current = chats;
     }, [chats]);
+
+    const resetStreamBatching = useCallback(() => {
+        if (streamFrameRef.current) {
+            window.cancelAnimationFrame(streamFrameRef.current);
+            streamFrameRef.current = null;
+        }
+
+        streamBufferRef.current = "";
+        streamedContentRef.current = "";
+    }, []);
+
+    const flushStreamBuffer = useCallback((chatId) => {
+        if (!chatId || !streamBufferRef.current) return;
+
+        const chunk = streamBufferRef.current;
+        streamBufferRef.current = "";
+        dispatch(appendToMessage({ chatId, chunk }));
+    }, [dispatch]);
+
+    const queueStreamChunk = useCallback((chatId, chunk) => {
+        if (!chatId || !chunk) return;
+
+        streamBufferRef.current += chunk;
+        streamedContentRef.current += chunk;
+
+        if (streamFrameRef.current) {
+            return;
+        }
+
+        streamFrameRef.current = window.requestAnimationFrame(() => {
+            streamFrameRef.current = null;
+            flushStreamBuffer(chatId);
+        });
+    }, [flushStreamBuffer]);
+
+    const stopStreamBatching = useCallback((chatId) => {
+        if (streamFrameRef.current) {
+            window.cancelAnimationFrame(streamFrameRef.current);
+            streamFrameRef.current = null;
+        }
+
+        flushStreamBuffer(chatId);
+    }, [flushStreamBuffer]);
+
+    useEffect(() => {
+        return () => {
+            if (streamFrameRef.current) {
+                window.cancelAnimationFrame(streamFrameRef.current);
+            }
+        };
+    }, []);
 
     // ===== Socket Setup =====
     // Functions are now defined below using useCallback for better performance
@@ -91,11 +146,13 @@ export function useChat() {
 
     // ===== Send Message Flow =====
     const handleSendMessage = useCallback(async ({ message, chatId, file }) => {
+        const activeChatId = chatId || `temp_${Date.now()}`;
+        const isNewChat = !chatId;
+
         try {
             dispatch(setError(null));
             dispatch(setLoading(true));
-            const activeChatId = chatId || `temp_${Date.now()}`;
-            const isNewChat = !chatId;
+            resetStreamBatching();
 
             if (!chatId) {
                 dispatch(createNewChat({
@@ -115,6 +172,7 @@ export function useChat() {
                 message: "",
                 role: "ai",
                 messageId: `ai_${Date.now()}`,
+                isLoading: true,
             }));
 
             // Files must go through the HTTP upload route so multer can parse
@@ -126,10 +184,15 @@ export function useChat() {
                     file,
                 });
 
-                const aiContent = data?.aiMessage?.content || data?.aiResponse || "";
-                if (aiContent) {
-                    dispatch(appendToMessage({ chatId: activeChatId, chunk: aiContent }));
-                }
+                const aiContent =
+                    data?.aiMessage?.content ||
+                    data?.aiResponse ||
+                    "I couldn't generate a response this time. Please try again.";
+
+                dispatch(resolveAssistantMessage({
+                    chatId: activeChatId,
+                    content: aiContent,
+                }));
 
                 if (isNewChat && data?.chatId) {
                     dispatch(promoteChat({
@@ -155,13 +218,27 @@ export function useChat() {
             });
 
             const onStream = (chunk) => {
-                dispatch(appendToMessage({ chatId: activeChatId, chunk }));
+                // Step 1: Collect multiple socket chunks in the same animation
+                // frame so the chat list does not re-render for every token.
+                const nextChunk =
+                    typeof chunk === "string"
+                        ? chunk
+                        : chunk?.content || "";
+
+                queueStreamChunk(activeChatId, nextChunk);
             };
 
             const onDone = (payload) => {
                 socket.off("stream", onStream);
                 socket.off("done", onDone);
                 socket.off("error", onError);
+                // Step 2: Flush any buffered tokens before we finalize the chat.
+                stopStreamBatching(activeChatId);
+                dispatch(resolveAssistantMessage({
+                    chatId: activeChatId,
+                    content: streamedContentRef.current,
+                }));
+                resetStreamBatching();
                 dispatch(setLoading(false));
                 if (isNewChat && payload?.chatId) {
                     dispatch(promoteChat({
@@ -180,22 +257,35 @@ export function useChat() {
                 socket.off("stream", onStream);
                 socket.off("done", onDone);
                 socket.off("error", onError);
+                stopStreamBatching(activeChatId);
                 dispatch(setLoading(false));
-                dispatch(setError(
+                const errorMessage =
                     typeof errorPayload === "string"
                         ? errorPayload
-                        : errorPayload?.message || "Unable to send message."
-                ));
+                        : errorPayload?.message || "Unable to send message.";
+
+                dispatch(failAssistantMessage({
+                    chatId: activeChatId,
+                    content: errorMessage,
+                }));
+                resetStreamBatching();
+                dispatch(setError(errorMessage));
             };
 
             socket.on("stream", onStream);
             socket.on("done", onDone);
             socket.on("error", onError);
         } catch (error) {
-            dispatch(setError(getErrorMessage(error)));
+            resetStreamBatching();
+            const errorMessage = getErrorMessage(error);
+            dispatch(failAssistantMessage({
+                chatId: activeChatId,
+                content: errorMessage,
+            }));
+            dispatch(setError(errorMessage));
             dispatch(setLoading(false));
         }
-    }, [dispatch, handleGetChats]);
+    }, [dispatch, handleGetChats, queueStreamChunk, resetStreamBatching, stopStreamBatching]);
 
     const initializeSocketConnection = useCallback(() => {
         initializedSocketConnection();

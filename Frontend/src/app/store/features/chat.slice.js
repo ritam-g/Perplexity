@@ -22,6 +22,39 @@ const chatSlice = createSlice({
             const lastMessage = messages[messages.length - 1];
             if (lastMessage?.role === "ai" || lastMessage?.role === "assistant") {
                 lastMessage.content += chunk;
+                // Keep the message in "streaming" mode until the backend signals
+                // the response is complete. This lets the UI render lightweight
+                // plain text while tokens arrive instead of re-running markdown
+                // parsing on every chunk.
+                lastMessage.isLoading = true;
+            }
+        },
+        resolveAssistantMessage: (state, action) => {
+            const { chatId, content } = action.payload;
+
+            if (!state.chats[chatId]) return;
+            const messages = state.chats[chatId].messages;
+            if (!messages || messages.length === 0) return;
+
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage?.role === "ai" || lastMessage?.role === "assistant") {
+                lastMessage.content = content;
+                lastMessage.isLoading = false;
+                state.chats[chatId].lastUpdated = new Date().toISOString();
+            }
+        },
+        failAssistantMessage: (state, action) => {
+            const { chatId, content } = action.payload;
+
+            if (!state.chats[chatId]) return;
+            const messages = state.chats[chatId].messages;
+            if (!messages || messages.length === 0) return;
+
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage?.role === "ai" || lastMessage?.role === "assistant") {
+                lastMessage.content = content || "I hit a problem while responding. Please try again.";
+                lastMessage.isLoading = false;
+                state.chats[chatId].lastUpdated = new Date().toISOString();
             }
         },
         // ===== Chat Metadata =====
@@ -46,7 +79,7 @@ const chatSlice = createSlice({
 
         // ===== Message Updates =====
         addMessage: (state, action) => {
-            const { chatId, message, role, messageId } = action.payload
+            const { chatId, message, role, messageId, isLoading = false } = action.payload
 
             // 👉 Messages can arrive before sidebar metadata, so guard against missing chat state.
             if (!state.chats[chatId]) {
@@ -63,7 +96,8 @@ const chatSlice = createSlice({
             state.chats[chatId].messages.push({
                 id: messageId || `${role}-${Date.now()}`,
                 role,
-                content: message
+                content: message,
+                isLoading
             })
 
             // 👉 Keep a local timestamp so history sorting reflects the latest interaction.
@@ -120,5 +154,16 @@ const chatSlice = createSlice({
     }
 })
 
-export const { setChats, setLoading, setError, setCurrentChatId, createNewChat, addMessage, appendToMessage, promoteChat } = chatSlice.actions
+export const {
+    setChats,
+    setLoading,
+    setError,
+    setCurrentChatId,
+    createNewChat,
+    addMessage,
+    appendToMessage,
+    resolveAssistantMessage,
+    failAssistantMessage,
+    promoteChat,
+} = chatSlice.actions
 export default chatSlice.reducer;
