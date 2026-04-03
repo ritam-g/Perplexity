@@ -14,11 +14,19 @@ const embeddings = new MistralAIEmbeddings({
  * @returns {Promise<number[]>} - 1024-dimension vector (Mistral default)
  */
 export async function embedQuery(text) {
-    if (!text) return null;
+    const normalizedText = typeof text === "string" ? text.trim() : "";
+
+    if (!normalizedText) return null;
 
     try {
         // Step 1: Call Mistral's embedding API for a single query
-        return await embeddings.embedQuery(text);
+        const queryVector = await embeddings.embedQuery(normalizedText);
+
+        if (!Array.isArray(queryVector) || queryVector.length === 0) {
+            throw new Error("Embedding API returned an empty query vector.");
+        }
+
+        return queryVector;
     } catch (error) {
         console.error("Embedding Query Error:", error);
         throw error;
@@ -32,33 +40,53 @@ export async function embedQuery(text) {
  * @returns {Promise<void>}
  */
 export async function embedAndStoreDocuments(texts, userId) {
-    if (!texts || texts.length === 0) return;
     if (!userId) {
         throw new Error("userId is required to store document embeddings.");
+    }
+
+    const cleanTexts = Array.isArray(texts)
+        ? texts
+            .map((text) => (typeof text === "string" ? text.trim() : ""))
+            .filter(Boolean)
+        : [];
+
+    if (cleanTexts.length === 0) {
+        throw new Error("No document chunks were provided for embedding.");
     }
 
     try {
         // Step 1: Batch embed all documents simultaneously
         // This is more efficient than calling the API for each one
-        const allEmbeddings = await embeddings.embedDocuments(texts);
+        const allEmbeddings = await embeddings.embedDocuments(cleanTexts);
         const namespace = userId.toString();
+        const batchTimestamp = Date.now();
 
-        // Step 2: Format data for Pinecone (id, values, metadata)
-        const records = allEmbeddings.map((embedding, i) => ({
-            id: `chunk-${namespace}-${Date.now()}-${i}`,
-            values: embedding,
-            metadata: {
-                text: texts[i]
+        if (!Array.isArray(allEmbeddings) || allEmbeddings.length !== cleanTexts.length) {
+            throw new Error("Embedding API returned an incomplete document embedding batch.");
+        }
+
+        // Step 2: Format data for Pinecone using the dense-vector record shape.
+        const records = allEmbeddings.map((embedding, i) => {
+            if (!Array.isArray(embedding) || embedding.length === 0) {
+                throw new Error(`Embedding API returned an empty vector for chunk ${i}.`);
             }
-        }));
+
+            return {
+                id: `chunk-${namespace}-${batchTimestamp}-${i}`,
+                values: embedding,
+                metadata: {
+                    text: cleanTexts[i]
+                }
+            };
+        });
 
         console.log(`\x1b[36m[DATABASE STAGE]: Upserting ${records.length} vectors to Pinecone...\x1b[0m`);
 
-        // Every user writes to their own namespace so Pinecone keeps one user's
-        // vectors isolated from every other user's vectors in the same index.
+        // Step 3: Upsert into the user's namespace so one user's vectors never
+        // mix with another user's data in the shared Pinecone index.
         await pineconeIndex.upsert({
-            records,//embeddings and metadata
-            namespace//NOTE - fetching the data pincone index
+            records,
+            namespace
         });
 
         console.log("\x1b[32m[SUCCESS]: Storage complete.\x1b[0m");

@@ -1,5 +1,39 @@
-import { retrieveDocuments } from "./retriever.service.js";
+import { DEFAULT_TOP_K, retrieveDocuments } from "./retriever.service.js";
 import { chatWithMistralAiModel } from "../ai.service.js";
+
+function normalizeContext(context) {
+    return typeof context === "string" ? context.trim() : "";
+}
+
+function buildHistoryMessages(chatHistory = []) {
+    return chatHistory
+        .slice(-10)
+        .map((msg) => ({
+            role: msg.role === "ai" ? "assistant" : msg.role,
+            content: msg.content
+        }))
+        .filter((msg) => typeof msg.content === "string" && msg.content.trim());
+}
+
+function buildSystemPrompt(fileContext, retrievedContext) {
+    let systemPrompt = "You are an intelligent knowledge assistant.\n\n";
+
+    if (fileContext) {
+        systemPrompt += `## Uploaded Document Content:\n${fileContext}\n\n`;
+    }
+
+    if (retrievedContext) {
+        systemPrompt += "## Knowledge Base Facts:\n" +
+            retrievedContext + "\n\n";
+    }
+
+    systemPrompt += "Rules:\n" +
+        "- Prefer the uploaded file context when it directly answers the question.\n" +
+        "- Otherwise, use the retrieved knowledge base facts.\n" +
+        "- If neither contains the answer, fall back to your general knowledge.";
+
+    return systemPrompt;
+}
 
 /**
  * @description Orchestrates the Multi-turn RAG Flow (History + Vector Search + LLM)
@@ -7,72 +41,72 @@ import { chatWithMistralAiModel } from "../ai.service.js";
  * @param {Array} chatHistory - Previous messages for continuity
  * @param {string} fileContext - Any text from an uploaded file (treated as extra context)
  * @param {string|import("mongoose").Types.ObjectId} userId - Owner of the Pinecone namespace
+ * @param {{ topK?: number }} [options]
  * @returns {Promise<string>} - Context-aware AI response
  */
-export async function ragPipeline(userQuery, chatHistory = [], fileContext = "", userId) {
+export async function ragPipeline(userQuery, chatHistory = [], fileContext = "", userId, options = {}) {
+    const normalizedQuery = typeof userQuery === "string" ? userQuery.trim() : "";
+    const normalizedFileContext = normalizeContext(fileContext);
+    const historyMessages = buildHistoryMessages(chatHistory);
+
+    if (!normalizedQuery) {
+        const error = new Error("userQuery is required");
+        error.statusCode = 400;
+        throw error;
+    }
+
     try {
-        // Define simple ANSI colors for the terminal
-        const colors = {
-            reset: "\x1b[0m",
-            cyan: "\x1b[36m",
-            green: "\x1b[32m",
-            yellow: "\x1b[33m",
-            magenta: "\x1b[35m"
-        };
+        // Step 1: Search Pinecone for the current user's most relevant chunks.
+        const retrievedContext = normalizeContext(
+            await retrieveDocuments(normalizedQuery, userId, {
+                topK: options.topK ?? DEFAULT_TOP_K,
+            })
+        );
 
-        // Retrieval is always scoped by userId so this chat can only see chunks
-        // from the authenticated user's Pinecone namespace.
-        const context = await retrieveDocuments(userQuery, userId);
+        const hasFileContext = normalizedFileContext.length > 0;
+        const hasRetrievedContext = retrievedContext.length > 0;
 
-        console.log(`${colors.cyan}[RAG STAGE]: Context Query Finished.${colors.reset}`);
-
-        if (context) {
-            console.log(`${colors.green}[DATABASE FOUND]: Relevant chunks injected.${colors.reset}`);
-            console.log(`${colors.yellow}--- RETRIEVED TEXT PREVIEW ---\n${context.substring(0, 200)}...\n--- END PREVIEW ---${colors.reset}`);
+        if (hasRetrievedContext) {
+            console.log("[RAG PIPELINE]: Retrieved Pinecone context for this query.");
         } else {
-            console.log(`${colors.magenta}[DATABASE EMPTY]: No relevant facts found. Falling back to general knowledge.${colors.reset}`);
+            console.log("[RAG PIPELINE]: No Pinecone context found. Falling back to chat history + query.");
         }
 
-        // Step 3: Build a precise System Prompt
-        let systemPrompt = "You are an intelligent knowledge assistant.\n\n";
-
-        // Add File context separately (if provided)
-        if (fileContext) {
-            systemPrompt += `## Uploaded Document Content:\n${fileContext}\n\n`;
-        }
-
-        // Add Pinecone context separately (if provided)
-        if (context) {
-            systemPrompt += "## Knowledge Base Facts:\n" +
-                "Use ONLY the relevant context strings below for additional facts:\n" +
-                context + "\n\n";
-        }
-
-        systemPrompt += "Rules:\n" +
-            "- If the document above contains the answer, use it.\n" +
-            "- If the Knowledge Base contains the answer, use it.\n" +
-            "- Otherwise, fallback to your general intelligence.";
-
-        // Step 4: Assemble message chain
-        const finalMessages = [
-            { role: "system", content: systemPrompt },
-            ...chatHistory.slice(-10).map((msg) => ({
-                role: msg.role === "ai" ? "assistant" : msg.role,
-                content: msg.content
-            })),
-            { role: "user", content: userQuery }
+        let finalMessages = [
+            ...historyMessages,
+            { role: "user", content: normalizedQuery }
         ];
 
-        // Step 5: Call LLM
-        console.log(`${colors.cyan}[AI STAGE]: Generating response with Mistral...${colors.reset}`);
+        // Step 2: Only inject a system prompt when we actually have file or
+        // retrieved context to prioritize.
+        if (hasFileContext || hasRetrievedContext) {
+            const systemPrompt = buildSystemPrompt(
+                normalizedFileContext,
+                retrievedContext
+            );
+
+            finalMessages = [
+                { role: "system", content: systemPrompt },
+                ...historyMessages,
+                { role: "user", content: normalizedQuery }
+            ];
+        }
+
+        // Step 3: Call the LLM with either:
+        // - file context + retrieved context + history + query, or
+        // - history + query only when Pinecone returns no usable context.
+        console.log("[AI STAGE]: Generating response with Mistral...");
         return await chatWithMistralAiModel({ message: finalMessages });
     } catch (error) {
         console.error("Pipeline Error:", error);
 
-        // Fallback: Default to a normal LLM call if the RAG flow breaks
-        // This ensures the user still gets some answer, even if context search failed
+        // Step 4: Final fallback when the RAG flow itself fails. Keep the chat
+        // usable by sending only recent history plus the current query.
         return await chatWithMistralAiModel({
-            message: [{ role: "user", content: userQuery }]
+            message: [
+                ...historyMessages,
+                { role: "user", content: normalizedQuery }
+            ]
         });
     }
 }

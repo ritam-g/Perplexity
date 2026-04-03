@@ -21,17 +21,7 @@ export function WelcomeCard() {
         </div>
       </div>
 
-      <div className="p-6 rounded-2xl bg-surface-container-low border border-outline-variant/5 group hover:bg-surface-container transition-all cursor-pointer hover:scale-[1.02] duration-300 shadow-md">
-        <span className="material-symbols-outlined text-primary mb-4 text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>terminal</span>
-        <p className="font-bold text-on-surface text-base mb-1">Code Optimization</p>
-        <p className="text-sm text-on-surface-variant leading-relaxed">Refactor complex logic structures with AI precision.</p>
-      </div>
-
-      <div className="p-6 rounded-2xl bg-surface-container-low border border-outline-variant/5 group hover:bg-surface-container transition-all cursor-pointer hover:scale-[1.02] duration-300 shadow-md">
-        <span className="material-symbols-outlined text-secondary mb-4 text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>draw</span>
-        <p className="font-bold text-on-surface text-base mb-1">Asset Generation</p>
-        <p className="text-sm text-on-surface-variant leading-relaxed">Create high-fidelity SVG patterns and vector styles.</p>
-      </div>
+      
     </motion.div>
   );
 }

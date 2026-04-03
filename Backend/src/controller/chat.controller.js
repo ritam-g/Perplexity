@@ -8,9 +8,27 @@ import { processChatMessage } from "../services/chat.service.js";
  */
 export async function sendMessageController(req, res) {
   try {
-    // Keep the controller thin. The shared service below contains the already
-    // built chat + file + RAG workflow so HTTP and Socket.IO use the same code.
-    const { message, chatId } = req.body;
+    const { chatId } = req.body;
+    const message = typeof req.body?.message === "string"
+      ? req.body.message.trim()
+      : "";
+
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication is required.",
+      });
+    }
+
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: "message is required",
+      });
+    }
+
+    // Step 1: Delegate the entire chat + optional file + RAG flow to the
+    // shared service so HTTP and Socket.IO follow the exact same logic.
     const { activeChatId, aiMessage, chat, userMessage } = await processChatMessage({
       userId: req.user.id,
       message,
@@ -18,7 +36,8 @@ export async function sendMessageController(req, res) {
       file: req.file,
     });
 
-    res.status(200).json({
+    // Step 2: Return the saved messages and resolved chat id to the frontend.
+    return res.status(200).json({
       success: true,
       chatId: activeChatId,
       aiMessage,
@@ -28,9 +47,9 @@ export async function sendMessageController(req, res) {
   } catch (error) {
     console.error("Chat Error:", error);
 
-    res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Unable to process chat message.",
     });
   }
 }

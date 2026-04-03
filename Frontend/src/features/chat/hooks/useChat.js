@@ -8,7 +8,7 @@ import {
     appendToMessage,
     promoteChat,
 } from "../../../app/store/features/chat.slice";
-import { getChat, getMessage } from "../services/chat.api";
+import { getChat, getMessage, sendMessage as sendMessageRequest } from "../services/chat.api";
 import { initializedSocketConnection, getSocket } from "../services/chat.socket";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useRef, useCallback, useMemo } from "react";
@@ -21,6 +21,10 @@ function mapMessages(messages = []) {
         role: message.role,
         content: message.content,
     }));
+}
+
+function getErrorMessage(error) {
+    return error?.response?.data?.message || error?.message || "Something went wrong";
 }
 
 // ===== useChat Hook =====
@@ -88,10 +92,11 @@ export function useChat() {
     // ===== Send Message Flow =====
     const handleSendMessage = useCallback(async ({ message, chatId, file }) => {
         try {
+            dispatch(setError(null));
             dispatch(setLoading(true));
-            const socket = getSocket();
-            if (!socket) throw new Error("Socket not initialized");
             const activeChatId = chatId || `temp_${Date.now()}`;
+            const isNewChat = !chatId;
+
             if (!chatId) {
                 dispatch(createNewChat({
                     chatId: activeChatId,
@@ -111,14 +116,42 @@ export function useChat() {
                 role: "ai",
                 messageId: `ai_${Date.now()}`,
             }));
-            socket.emit("ask", { 
-                message, 
-                chatId: activeChatId, 
-                file: file ? {
-                    buffer: file,
-                    originalname: file.name,
-                    mimetype: file.type
-                } : null
+
+            // Files must go through the HTTP upload route so multer can parse
+            // multipart/form-data and expose a real req.file buffer.
+            if (file) {
+                const data = await sendMessageRequest({
+                    message,
+                    chatId: activeChatId,
+                    file,
+                });
+
+                const aiContent = data?.aiMessage?.content || data?.aiResponse || "";
+                if (aiContent) {
+                    dispatch(appendToMessage({ chatId: activeChatId, chunk: aiContent }));
+                }
+
+                if (isNewChat && data?.chatId) {
+                    dispatch(promoteChat({
+                        tempId: activeChatId,
+                        realId: data.chatId,
+                        title: data?.chat?.title || message.substring(0, 30),
+                    }));
+                    dispatch(setCurrentChatId(data.chatId));
+                }
+
+                await handleGetChats({ preserveCurrentId: true });
+                dispatch(setLoading(false));
+                return;
+            }
+
+            const socket = getSocket();
+            if (!socket) throw new Error("Socket not initialized");
+
+            socket.emit("ask", {
+                message,
+                chatId: activeChatId,
+                file: null
             });
 
             const onStream = (chunk) => {
@@ -128,8 +161,9 @@ export function useChat() {
             const onDone = (payload) => {
                 socket.off("stream", onStream);
                 socket.off("done", onDone);
+                socket.off("error", onError);
                 dispatch(setLoading(false));
-                if (!chatId && payload?.chatId) {
+                if (isNewChat && payload?.chatId) {
                     dispatch(promoteChat({
                         tempId: activeChatId,
                         realId: payload.chatId,
@@ -141,10 +175,24 @@ export function useChat() {
                     handleGetChats({ preserveCurrentId: true });
                 }
             };
+
+            const onError = (errorPayload) => {
+                socket.off("stream", onStream);
+                socket.off("done", onDone);
+                socket.off("error", onError);
+                dispatch(setLoading(false));
+                dispatch(setError(
+                    typeof errorPayload === "string"
+                        ? errorPayload
+                        : errorPayload?.message || "Unable to send message."
+                ));
+            };
+
             socket.on("stream", onStream);
             socket.on("done", onDone);
+            socket.on("error", onError);
         } catch (error) {
-            dispatch(setError(error.message));
+            dispatch(setError(getErrorMessage(error)));
             dispatch(setLoading(false));
         }
     }, [dispatch, handleGetChats]);

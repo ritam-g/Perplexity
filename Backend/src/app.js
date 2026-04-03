@@ -35,8 +35,23 @@ app.use("/api/files", fileRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+  console.error(err?.stack || err);
+
+  if (err?.name === "MulterError") {
+    const message = err.code === "LIMIT_FILE_SIZE"
+      ? "File size must be 5MB or smaller."
+      : err.message;
+
+    return res.status(400).json({
+      success: false,
+      message,
+    });
+  }
+
+  return res.status(err?.statusCode || 500).json({
+    success: false,
+    message: err?.message || "Something broke!",
+  });
 });
 
 export default app;

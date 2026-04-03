@@ -12,7 +12,7 @@ const chatRouter = Router();
  * @route - protected
  * @access - Private
  */
-chatRouter.post("/message", upload.single('file'), messageValidation, authVerifyMiddleware, sendMessageController)
+chatRouter.post("/message", authVerifyMiddleware, upload.single('file'), messageValidation, sendMessageController)
 /** 
  * @description - user can get message but he should login first
  * @method - get method
