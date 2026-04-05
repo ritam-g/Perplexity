@@ -1,9 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+const MotionDiv = motion.div;
+const MotionH2 = motion.h2;
+const MotionP = motion.p;
 
 const FeatureCard = ({ icon, title, description, index }) => {
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -20,7 +23,7 @@ const FeatureCard = ({ icon, title, description, index }) => {
       <p className="text-zinc-500 font-medium leading-relaxed group-hover:text-zinc-400 transition-colors">
         {description}
       </p>
-    </motion.div>
+    </MotionDiv>
   );
 };
 
@@ -52,7 +55,7 @@ const Features = () => {
     <section className="py-32 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-          <motion.h2 
+          <MotionH2 
             initial={{ opacity: 0, y: -20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -60,8 +63,8 @@ const Features = () => {
             className="text-4xl md:text-5xl font-black text-white tracking-tighter"
           >
             Capabilities Redefined
-          </motion.h2>
-          <motion.p 
+          </MotionH2>
+          <MotionP 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -69,7 +72,7 @@ const Features = () => {
             className="text-lg text-zinc-500 font-medium"
           >
             Engineered to handle complex reasoning while maintaining a beautifully simple user experience.
-          </motion.p>
+          </MotionP>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

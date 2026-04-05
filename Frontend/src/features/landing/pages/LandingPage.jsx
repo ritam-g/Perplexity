@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
@@ -10,7 +9,7 @@ import Footer from '../components/Footer';
 
 const LandingPage = () => {
   return (
-    <div className="bg-[#05070D] text-[#E6EDF3] font-['Inter'] selection:bg-cyan-500/30 overflow-x-hidden">
+    <div className="layout-root relative flex min-h-[100vh] flex-col overflow-x-hidden bg-[#05070D] font-['Inter'] text-[#E6EDF3] selection:bg-cyan-500/30">
       {/* Dynamic Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#0B0F1A] rounded-full blur-[160px] opacity-60"></div>
@@ -18,7 +17,9 @@ const LandingPage = () => {
         <div className="absolute top-[30%] right-[10%] w-[30%] h-[40%] bg-[#4fdbc811] rounded-full blur-[140px] opacity-30"></div>
       </div>
 
-      <div className="relative z-10">
+      {/* Making `main-content` a column lets the closing CTA expand naturally,
+          instead of leaving unused flex height as a blank gap above the footer. */}
+      <main className="main-content relative z-10 flex flex-1 flex-col">
         {/* Navbar */}
         <nav className="sticky top-0 w-full z-[100] border-b border-white/5 bg-[#05070D]/70 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
@@ -47,8 +48,9 @@ const LandingPage = () => {
         <HowItWorks />
         <Preview />
         <CTA />
-        <Footer />
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 };

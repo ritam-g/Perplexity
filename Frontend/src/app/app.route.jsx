@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react'
 import { createBrowserRouter } from 'react-router'
-import { ProtectedRoute, PageLoader } from './route-utils'
+import { ProtectedRoute, PageLoader, PageTransition } from './route-utils'
 
 // Lazy loaded pages
 const LandingPage = React.lazy(() => import('../features/landing/pages/LandingPage'))
@@ -14,7 +14,9 @@ export const router = createBrowserRouter([
         path: '/',
         element: (
           <Suspense fallback={<PageLoader />}>
-            <LandingPage />
+            <PageTransition>
+              <LandingPage />
+            </PageTransition>
           </Suspense>
         )
     },
@@ -23,7 +25,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute>
-                <Dashboard/>
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
             </ProtectedRoute>
           </Suspense>
         )
@@ -33,7 +37,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute>
-                <Dashboard />
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
             </ProtectedRoute>
           </Suspense>
         )
@@ -43,7 +49,9 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <ProtectedRoute>
-                <ProfilePage />
+                <PageTransition>
+                  <ProfilePage />
+                </PageTransition>
             </ProtectedRoute>
           </Suspense>
         )
@@ -52,7 +60,9 @@ export const router = createBrowserRouter([
         path: '/login',
         element: (
             <Suspense fallback={<PageLoader />}>
-                <Login />
+                <PageTransition>
+                  <Login />
+                </PageTransition>
             </Suspense>
         )
     },
@@ -60,7 +70,9 @@ export const router = createBrowserRouter([
         path: '/register',
         element: (
             <Suspense fallback={<PageLoader />}>
-                <Register />
+                <PageTransition>
+                  <Register />
+                </PageTransition>
             </Suspense>
         )
     }

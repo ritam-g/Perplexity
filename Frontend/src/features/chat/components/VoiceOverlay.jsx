@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+const MotionDiv = motion.div;
 
 export function VoiceOverlay({ listening, onStop, transcript }) {
   return (
     <AnimatePresence>
       {listening && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
@@ -14,7 +15,7 @@ export function VoiceOverlay({ listening, onStop, transcript }) {
         >
           <div className="relative flex h-64 w-64 items-center justify-center">
             {/* Animated rings for pulsing effect */}
-            <motion.div
+            <MotionDiv
               animate={{ 
                 scale: [1, 2],
                 opacity: [0.5, 0]
@@ -26,7 +27,7 @@ export function VoiceOverlay({ listening, onStop, transcript }) {
               }}
               className="absolute h-full w-full rounded-full border-2 border-teal-500/30"
             />
-            <motion.div
+            <MotionDiv
               animate={{ 
                 scale: [1, 1.6],
                 opacity: [0.3, 0]
@@ -64,7 +65,7 @@ export function VoiceOverlay({ listening, onStop, transcript }) {
               Stop Interaction
             </div>
           </button>
-        </motion.div>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

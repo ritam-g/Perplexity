@@ -2,10 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BotIcon } from '../icons';
 import { itemMotion } from '../utils/motion';
+const MotionDiv = motion.div;
 
 export function WelcomeCard() {
   return (
-    <motion.div
+    <MotionDiv
       {...itemMotion}
       className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16"
     >
@@ -22,6 +23,6 @@ export function WelcomeCard() {
       </div>
 
       
-    </motion.div>
+    </MotionDiv>
   );
 }

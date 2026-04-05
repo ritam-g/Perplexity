@@ -1,13 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router';
+const MotionDiv = motion.div;
 
 const Hero = () => {
   return (
     <section className="relative pt-24 pb-32 sm:pt-32 sm:pb-48 overflow-hidden z-[50]">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Hero Left Content */}
-        <motion.div
+        <MotionDiv
            initial={{ opacity: 0, x: -50 }}
            animate={{ opacity: 1, x: 0 }}
            transition={{ duration: 0.8, ease: "easeOut" }}
@@ -35,10 +36,10 @@ const Hero = () => {
               Try Demo
             </Link>
           </div>
-        </motion.div>
+        </MotionDiv>
 
         {/* Hero Right Preview */}
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0, scale: 0.9, y: 50 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
@@ -109,7 +110,7 @@ const Hero = () => {
           {/* Floating Accents */}
           <div className="absolute -z-10 -bottom-10 -right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] animate-pulse"></div>
           <div className="absolute -z-10 -top-10 -left-10 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] animate-pulse"></div>
-        </motion.div>
+        </MotionDiv>
       </div>
       
       {/* Logos Strip Mockup */}

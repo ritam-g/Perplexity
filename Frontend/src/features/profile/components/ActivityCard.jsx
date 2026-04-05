@@ -24,7 +24,7 @@ export function ActivityCard({ activities }) {
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="rounded-[1.5rem] border border-white/6 bg-black/15 p-4 transition duration-300 hover:border-white/10 hover:bg-black/25"
+            className="rounded-[1.5rem] border border-white/6 bg-black/15 p-4 transition-all duration-200 ease-out transform-gpu will-change-transform hover:scale-[1.01] hover:border-white/10 hover:bg-black/25 hover:shadow-[0_18px_40px_rgba(4,10,24,0.16)]"
           >
             <div className="flex items-start gap-4">
               <div
@@ -47,7 +47,7 @@ export function ActivityCard({ activities }) {
 
       <button
         type="button"
-        className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-white/8 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-300 transition duration-300 hover:border-primary/25 hover:bg-primary/10 hover:text-primary"
+        className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-white/8 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-slate-300 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.01] hover:border-primary/25 hover:bg-primary/10 hover:text-primary active:scale-[0.99]"
       >
         View All Activity
       </button>

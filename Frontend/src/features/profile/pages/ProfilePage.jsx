@@ -415,10 +415,10 @@ export default function ProfilePage() {
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition duration-300 ${
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition-all duration-200 ease-out transform-gpu will-change-transform ${
                   item.id === 'analytics'
-                    ? 'border border-primary/20 bg-primary/10 text-primary shadow-[0_18px_50px_rgba(56,189,248,0.12)]'
-                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
+                    ? 'border border-primary/20 bg-primary/10 text-primary shadow-[0_18px_50px_rgba(56,189,248,0.12)] hover:scale-[1.01]'
+                    : 'text-slate-400 hover:scale-[1.01] hover:bg-white/[0.04] hover:text-white active:scale-[0.99]'
                 }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
@@ -435,7 +435,7 @@ export default function ProfilePage() {
               </p>
               <button
                 type="button"
-                className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(34,211,238,0.95),rgba(67,97,238,0.9))] px-4 py-3 text-sm font-bold text-slate-950 transition duration-300 hover:scale-[1.02]"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(34,211,238,0.95),rgba(67,97,238,0.9))] px-4 py-3 text-sm font-bold text-slate-950 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:shadow-[0_22px_55px_rgba(59,130,246,0.22)] active:scale-[0.98]"
               >
                 Upgrade
               </button>
@@ -457,7 +457,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => navigate('/dashboard')}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-surface-container-low/90 text-slate-300 transition hover:border-primary/25 hover:text-primary lg:hidden"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-surface-container-low/90 text-slate-300 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:border-primary/25 hover:text-primary active:scale-95 lg:hidden"
                   aria-label="Open workspace"
                 >
                   <span className="material-symbols-outlined">menu</span>
@@ -476,7 +476,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-surface-container-low/90 text-slate-300 transition hover:border-primary/25 hover:text-primary"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/8 bg-surface-container-low/90 text-slate-300 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:border-primary/25 hover:text-primary active:scale-95"
                   aria-label="Notifications"
                 >
                   <span className="material-symbols-outlined">notifications</span>
@@ -565,7 +565,7 @@ export default function ProfilePage() {
                       </p>
                       <button
                         type="button"
-                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 transition hover:gap-3"
+                        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 transition-all duration-200 ease-out transform-gpu will-change-transform hover:translate-x-1 hover:gap-3 active:translate-x-0"
                       >
                         Go to models
                         <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
@@ -584,7 +584,7 @@ export default function ProfilePage() {
           type="button"
           onClick={handleSaveProfile}
           disabled={profileSaving || !profileDirty}
-          className="inline-flex h-16 w-full items-center justify-center rounded-[1.75rem] bg-[linear-gradient(135deg,rgba(34,211,238,0.98),rgba(67,97,238,0.92))] px-6 text-lg font-black tracking-tight text-slate-950 shadow-[0_20px_55px_rgba(34,211,238,0.2)] transition duration-300 active:scale-[0.99] disabled:opacity-60"
+          className="inline-flex h-16 w-full items-center justify-center rounded-[1.75rem] bg-[linear-gradient(135deg,rgba(34,211,238,0.98),rgba(67,97,238,0.92))] px-6 text-lg font-black tracking-tight text-slate-950 shadow-[0_20px_55px_rgba(34,211,238,0.2)] transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:hover:scale-100"
         >
           {profileSaving ? 'Saving...' : profileDirty ? 'Save Changes' : 'Profile In Sync'}
         </button>

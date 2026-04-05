@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { RouterProvider } from 'react-router'
+import { MotionConfig } from 'framer-motion'
 import { router } from './app.route'
 import { useAuth } from '../features/auth/hook/useAuth'
 
@@ -9,12 +10,14 @@ function App() {
 
   useEffect(() => {
     handleGetMe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <RouterProvider router={router} />
+    <MotionConfig reducedMotion="user">
+      <RouterProvider router={router} />
+    </MotionConfig>
   )
 }
 
 export default App
-

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { ChatMessage } from '../../chat/components/ChatMessage';
 
 const Preview = () => {
@@ -17,6 +16,7 @@ const Preview = () => {
       content: 'Doraemon Intelligence v2.4 introduces a fundamental shift in reasoning through three core pillars:\n\n*   **ParallelContext Processing:** Understanding billion-parameter datasets 6x faster than v2.3.\n*   **Ethereal Intelligence Layer:** Intuitive reasoning that feels natural to the user’s creative intent.\n*   **Neural Memory:** Gaining instant recall of technical documentation across multiple sessions.'
     }
   ];
+
 
   const handleCopy = (message) => {
     navigator.clipboard.writeText(message.content);

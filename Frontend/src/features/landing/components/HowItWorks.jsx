@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+const MotionDiv = motion.div;
+const MotionH2 = motion.h2;
 
 const HowItWorks = () => {
   const steps = [
@@ -25,7 +27,7 @@ const HowItWorks = () => {
        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent opacity-30"></div>
        
        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
-          <motion.h2 
+          <MotionH2 
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
@@ -33,14 +35,14 @@ const HowItWorks = () => {
             className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-24"
           >
             The Path to Intelligence
-          </motion.h2>
+          </MotionH2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 relative">
             {/* Horizontal Connection Line (Desktop) */}
             <div className="hidden lg:block absolute top-[30%] left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
             {steps.map((step, idx) => (
-              <motion.div 
+              <MotionDiv 
                 key={idx}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -55,7 +57,7 @@ const HowItWorks = () => {
                 <p className="text-zinc-500 font-medium leading-relaxed max-w-[300px]">
                   {step.description}
                 </p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
        </div>

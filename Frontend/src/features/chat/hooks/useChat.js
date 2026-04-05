@@ -100,7 +100,7 @@ export function useChat() {
     // Functions are now defined below using useCallback for better performance
 
     // ===== Sidebar History Fetch =====
-    const handleGetChats = useCallback(async ({ preserveCurrentId = true } = {}) => {
+    const handleGetChats = useCallback(async () => {
         try {
             dispatch(setLoading(true));
             const data = await getChat();

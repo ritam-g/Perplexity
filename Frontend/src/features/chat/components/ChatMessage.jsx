@@ -5,6 +5,10 @@ import { BotIcon, UserIcon } from '../icons';
 import { AiTypingLoader } from './AiTypingLoader';
 import { itemMotion } from '../utils/motion';
 
+const MotionArticle = motion.article;
+const MotionDiv = motion.div;
+const MotionP = motion.p;
+
 function MessageActions({ message, copiedMessageId, onCopy }) {
   const isCopied = copiedMessageId === message.id;
 
@@ -13,18 +17,18 @@ function MessageActions({ message, copiedMessageId, onCopy }) {
   }
 
   return (
-    <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="mt-3 flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
       <button 
         onClick={() => onCopy(message)}
-        className="p-1.5 text-slate-500 hover:text-primary transition-colors"
+        className="rounded-lg p-1.5 text-slate-500 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:bg-white/5 hover:text-primary active:scale-95"
         title={isCopied ? "Copied!" : "Copy message"}
       >
         <span className="material-symbols-outlined text-sm">{isCopied ? "done" : "content_copy"}</span>
       </button>
-      <button className="p-1.5 text-slate-500 hover:text-secondary transition-colors">
+      <button className="rounded-lg p-1.5 text-slate-500 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:bg-white/5 hover:text-secondary active:scale-95">
         <span className="material-symbols-outlined text-sm">thumb_up</span>
       </button>
-      <button className="p-1.5 text-slate-500 hover:text-error transition-colors">
+      <button className="rounded-lg p-1.5 text-slate-500 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:bg-white/5 hover:text-rose-300 active:scale-95">
         <span className="material-symbols-outlined text-sm">thumb_down</span>
       </button>
     </div>
@@ -44,16 +48,16 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
       : 'bg-surface-container border border-outline-variant/10 text-on-background rounded-2xl rounded-tl-sm w-full shadow-sm';
 
   return (
-    <motion.article
+    <MotionArticle
       {...itemMotion}
       // Only animate position changes so streamed content can grow naturally
       // without re-animating the bubble height on every token.
       layout="position"
-      className={`flex gap-4 group ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`group flex gap-4 will-change-transform-opacity ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
     >
       <div className="flex-shrink-0 mt-1">
         {isUser ? (
-          <div className="w-10 h-10 rounded-full border-2 border-secondary overflow-hidden bg-surface-container flex items-center justify-center">
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-secondary bg-surface-container shadow-[0_14px_30px_rgba(4,10,24,0.22)] transition-transform duration-200 group-hover:scale-[1.03]">
             <UserIcon className="w-6 h-6 text-secondary" />
           </div>
         ) : (
@@ -67,12 +71,12 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
           <span className="text-[10px] text-slate-500 font-medium tracking-tight">System v2.4</span>
         </div>
 
-        <motion.div
-          className={`inline-block p-5 text-[15px] leading-relaxed shadow-lg overflow-hidden ${bubbleClassName}`}
+        <MotionDiv
+          className={`inline-block overflow-hidden p-5 text-[15px] leading-relaxed shadow-lg transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform ${bubbleClassName} ${isUser ? 'group-hover:-translate-y-0.5 group-hover:shadow-[0_22px_45px_rgba(4,10,24,0.2)]' : 'group-hover:shadow-[0_22px_48px_rgba(4,10,24,0.26)]'}`}
         >
           <AnimatePresence mode="wait" initial={false}>
             {isUser ? (
-              <motion.p
+              <MotionP
                 key="user-content"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -81,10 +85,10 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
                 className='whitespace-pre-wrap'
               >
                 {message.content}
-              </motion.p>
+              </MotionP>
             ) : isAssistantLoading ? (
               hasStreamingContent ? (
-                <motion.div
+                <MotionDiv
                   key="assistant-streaming"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -93,15 +97,15 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
                 >
                   <p className="whitespace-pre-wrap">{message.content}</p>
                   <div
-                    className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400"
+                    className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 shadow-[0_10px_24px_rgba(4,10,24,0.14)]"
                     aria-label="AI is typing"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-pulse" />
                     <span>Streaming</span>
                   </div>
-                </motion.div>
+                </MotionDiv>
               ) : (
-                <motion.div
+                <MotionDiv
                   key="assistant-loader"
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -109,10 +113,10 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
                   <AiTypingLoader />
-                </motion.div>
+                </MotionDiv>
               )
             ) : (
-              <motion.div
+              <MotionDiv
                 key="assistant-content"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -137,11 +141,11 @@ export const ChatMessage = React.memo(({ message, copiedMessageId, onCopy }) => 
                   {message.content}
                 </ReactMarkdown>
                 <MessageActions message={message} copiedMessageId={copiedMessageId} onCopy={onCopy} />
-              </motion.div>
+              </MotionDiv>
             )}
           </AnimatePresence>
-        </motion.div>
+        </MotionDiv>
       </div>
-    </motion.article>
+    </MotionArticle>
   );
 });

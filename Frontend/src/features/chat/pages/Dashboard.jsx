@@ -29,16 +29,16 @@ const Dashboard = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [copiedMessageId, setCopiedMessageId] = useState(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
-  
+
   const chats = useSelector((state) => state.chat.chats);
   const currentChatId = useSelector((state) => state.chat.currentChatId);
   const isLoading = useSelector((state) => state.chat.isLoading);
   const chatError = useSelector((state) => state.chat.error);
   const user = useSelector((state) => state.auth.user);
-  
+
   const { transcript, listening } = useSelector((state) => state.voice);
   const { stopListening, toggleListening } = useSpeechRecognition();
-  
+
   const chatScrollRef = useRef(null);
   const prevListeningRef = useRef(listening);
   const scrollFrameRef = useRef(null);
@@ -79,14 +79,14 @@ const Dashboard = () => {
     );
   }, [chats]);
 
-  const activeMessages = chats[currentChatId]?.messages || [];
+  const activeMessages = useMemo(() => chats[currentChatId]?.messages || [], [chats, currentChatId]);
   const hasMessages = activeMessages.length > 0;
   const rawTitle = chats[currentChatId]?.title || 'New Conversation';
-  const activeTitle = (() => {
+  const activeTitle = useMemo(() => {
     const words = rawTitle.trim().split(/\s+/);
-    return words.length <= 5 ? rawTitle : words.slice(0, 5).join(' ') + '…';
-  })();
-  
+    return words.length <= 5 ? rawTitle : `${words.slice(0, 5).join(' ')}...`;
+  }, [rawTitle]);
+
   // Keep the latest count in a ref so the scroll listener can stay stable
   // while streamed tokens update the Redux state.
   useEffect(() => {
@@ -261,7 +261,7 @@ const Dashboard = () => {
   const handleSubmitMessage = (event) => {
     if (event) event.preventDefault();
     let trimmedMessage = chatInput.trim();
-    if (!trimmedMessage && selectedFile) trimmedMessage = "Summarize this file";
+    if (!trimmedMessage && selectedFile) trimmedMessage = 'Summarize this file';
     if (!trimmedMessage && !selectedFile) return;
 
     chat.handleSendMessage({ message: trimmedMessage, chatId: currentChatId, file: selectedFile });
@@ -270,7 +270,7 @@ const Dashboard = () => {
   };
 
   const handleOpenChat = useCallback((chatId) => chat.handleOpenChat(chatId), [chat]);
-  
+
   const handleNewChat = useCallback(() => {
     dispatch(setCurrentChatId(null));
     setChatInput('');
@@ -299,8 +299,8 @@ const Dashboard = () => {
     }
   }, []);
 
-  const handleInputChange = useCallback((e) => {
-    setChatInput(e.target.value);
+  const handleInputChange = useCallback((event) => {
+    setChatInput(event.target.value);
   }, []);
 
   const handleToggleListening = useCallback(() => {
@@ -320,41 +320,41 @@ const Dashboard = () => {
   }, [scrollToBottom]);
 
   return (
-    <div className="flex h-screen w-full relative bg-background text-on-background overflow-hidden selection:bg-primary/30">
+    <div className="relative flex h-screen w-full overflow-hidden bg-background text-on-background selection:bg-primary/30">
       {/* Radial Background Glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[20%] -right-[10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]"></div>
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-[10%] -top-[10%] h-[50%] w-[50%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute bottom-[20%] -right-[10%] h-[40%] w-[40%] rounded-full bg-secondary/5 blur-[120px]" />
       </div>
 
       {/* SideNavBar (Desktop) */}
-      <aside className="hidden md:flex flex-col h-full w-64 bg-surface-low p-4 space-y-8 shadow-2xl shadow-black/40 z-40 border-r border-white/5">
+      <aside className="z-40 hidden h-full w-64 flex-col space-y-8 border-r border-white/5 bg-surface-low p-4 shadow-2xl shadow-black/40 md:flex">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 shrink-0 transition-transform hover:scale-105">
+          <div className="h-10 w-10 shrink-0 transition-transform duration-200 ease-out hover:scale-105">
             <BotIcon />
           </div>
           <div>
-            <h1 className="text-xl font-black text-primary tracking-tighter leading-none">Doraemon</h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-extrabold mt-1">Intelligence v2.4</p>
+            <h1 className="leading-none tracking-tighter text-primary text-xl font-black">Doraemon</h1>
+            <p className="mt-1 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Intelligence v2.4</p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 flex-1 overflow-y-auto hide-scrollbar">
-          <button 
+        <div className="flex flex-1 flex-col gap-1 overflow-y-auto hide-scrollbar">
+          <button
             onClick={handleNewChat}
-            className="bg-surface-container-highest text-primary rounded-2xl px-4 py-3.5 flex items-center justify-center gap-3 transition-all hover:bg-surface-container-high active:scale-95 border border-white/5 shadow-lg group"
+            className="group flex items-center justify-center gap-3 rounded-2xl border border-white/5 bg-surface-container-highest px-4 py-3.5 text-primary shadow-lg transition-all duration-200 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:bg-surface-container-high hover:shadow-[0_18px_45px_rgba(4,10,24,0.2)] active:scale-[0.98]"
           >
-            <span className="material-symbols-outlined text-xl group-hover:rotate-90 transition-transform duration-300">add_circle</span>
-            <span className="font-bold text-sm tracking-tight">New Chat</span>
+            <span className="material-symbols-outlined text-xl transition-transform duration-300 group-hover:rotate-90">add_circle</span>
+            <span className="text-sm font-bold tracking-tight">New Chat</span>
           </button>
 
           <div className="mt-8 space-y-4">
-            <div className="px-4 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recent Activity</p>
-              <div className="w-1.5 h-1.5 rounded-full bg-secondary ai-glow"></div>
+            <div className="flex items-center justify-between px-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Recent Activity</p>
+              <div className="h-1.5 w-1.5 rounded-full bg-secondary ai-glow" />
             </div>
-            
-            <div className="space-y-1 custom-scrollbar overflow-y-auto pr-1 max-h-[40vh]">
+
+            <div className="custom-scrollbar max-h-[40vh] space-y-1 overflow-y-auto pr-1">
               {sortedChats.map((chatItem) => (
                 <SidebarChatItem
                   key={chatItem.id}
@@ -366,11 +366,12 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        <div className="pt-3 border-t border-outline-variant/10 space-y-3">
+
+        <div className="space-y-3 border-t border-outline-variant/10 pt-3">
           <button
             type="button"
             onClick={handleOpenProfile}
-            className="w-full rounded-2xl border border-white/5 bg-surface-container-low px-4 py-3 text-left text-sm font-semibold text-slate-300 transition duration-300 hover:border-primary/20 hover:bg-surface-container-high hover:text-primary"
+            className="w-full rounded-2xl border border-white/5 bg-surface-container-low px-4 py-3 text-left text-sm font-semibold text-slate-300 transition-all duration-200 ease-out transform-gpu will-change-transform hover:scale-[1.01] hover:border-primary/20 hover:bg-surface-container-high hover:text-primary active:scale-[0.99]"
           >
             <span className="inline-flex items-center gap-3">
               <span className="material-symbols-outlined text-lg">manage_accounts</span>
@@ -388,29 +389,29 @@ const Dashboard = () => {
       </aside>
 
       {/* Main Content Canvas */}
-      <main className="flex-1 flex flex-col min-w-0 bg-surface relative">
+      <main className="relative flex min-w-0 flex-1 flex-col bg-surface">
         {/* TopAppBar */}
-        <header className="fixed top-0 right-0 left-0 md:left-64 z-50 flex justify-between items-center px-8 py-3 bg-background/80 backdrop-blur-xl border-b border-white/5">
+        <header className="fixed left-0 right-0 top-0 z-50 flex items-center justify-between border-b border-white/5 bg-background/80 px-8 py-3 backdrop-blur-xl md:left-64">
           <div className="flex items-center gap-4">
-            <div className="md:hidden p-2 rounded-xl bg-surface-container-highest flex items-center justify-center border border-white/5">
-               <BotIcon size="sm" />
+            <div className="flex items-center justify-center rounded-xl border border-white/5 bg-surface-container-highest p-2 transition-all duration-200 ease-out md:hidden">
+              <BotIcon size="sm" />
             </div>
             <div className="flex flex-col">
-              <h2 className="font-bold text-on-surface tracking-tight text-lg leading-tight">{activeTitle}</h2>
+              <h2 className="text-lg font-bold leading-tight tracking-tight text-on-surface">{activeTitle}</h2>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-secondary ai-glow animate-pulse"></div>
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">Doramon AI · Connected</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-secondary ai-glow animate-pulse" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Doraemon AI / Connected</span>
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-surface-container-low rounded-full border border-white/5 shadow-inner">
-               <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Latency: 24ms</span>
+            <div className="hidden items-center gap-3 rounded-full border border-white/5 bg-surface-container-low px-4 py-2 shadow-inner sm:flex">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Latency: 24ms</span>
             </div>
             <button
               type="button"
-              className="p-2.5 rounded-xl text-slate-400 hover:text-primary hover:bg-surface-container-highest transition-all active:scale-90"
+              className="rounded-xl p-2.5 text-slate-400 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-105 hover:bg-surface-container-highest hover:text-primary active:scale-95"
               aria-label="Notifications"
             >
               <span className="material-symbols-outlined">notifications</span>
@@ -428,11 +429,11 @@ const Dashboard = () => {
         {/* Chat Container */}
         <section
           ref={chatScrollRef}
-          className="chat-scroll-shell flex-1 overflow-y-auto pt-28 pb-40 px-4 md:px-8 hide-scrollbar"
+          className="chat-scroll-shell stable-scroll-surface flex-1 overflow-y-auto px-4 pb-40 pt-28 hide-scrollbar md:px-8"
         >
-          <div className="max-w-4xl mx-auto">
+          <div className="mx-auto max-w-4xl">
             {!hasMessages ? (
-               <WelcomeCard />
+              <WelcomeCard />
             ) : (
               <div className="chat-scroll-content space-y-10 animate-message">
                 {activeMessages.map((message) => (
@@ -449,11 +450,11 @@ const Dashboard = () => {
         </section>
 
         {showJumpToLatest && hasMessages && (
-          <div className="pointer-events-none fixed bottom-36 left-0 right-0 md:left-64 z-40 flex justify-center px-4">
+          <div className="pointer-events-none fixed bottom-36 left-0 right-0 z-40 flex justify-center px-4 md:left-64">
             <button
               type="button"
               onClick={handleJumpToLatest}
-              className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-surface-container-high/95 px-4 py-2 text-sm font-semibold text-primary shadow-2xl shadow-black/20 backdrop-blur-xl transition hover:border-primary/40 hover:bg-surface-container-highest"
+              className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-primary/20 bg-surface-container-high/95 px-4 py-2 text-sm font-semibold text-primary shadow-2xl shadow-black/20 backdrop-blur-xl transition-all duration-200 ease-out transform-gpu will-change-transform hover:scale-105 hover:border-primary/40 hover:bg-surface-container-highest active:scale-95"
             >
               <span className="material-symbols-outlined text-base">south</span>
               New messages
@@ -462,33 +463,33 @@ const Dashboard = () => {
         )}
 
         {/* Bottom Floating Input Shell */}
-        <div className="fixed bottom-0 right-0 left-0 md:left-64 p-8 bg-gradient-to-t from-background via-background/90 to-transparent pointer-events-none">
-          <div className="max-w-4xl mx-auto pointer-events-auto flex flex-col gap-4">
-             {chatError && (
-               <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300 shadow-lg">
-                 {chatError}
-               </div>
-             )}
-             <Composer
-                chatInput={chatInput}
-                showSuggestions={activeMessages.length === 0}
-                isLoading={isLoading}
-                onChange={handleInputChange}
-                onSubmit={handleSubmitMessage}
-                disabled={!chatInput.trim() && !selectedFile || isLoading}
-                onMicClick={handleToggleListening}
-                isListening={listening}
-                onFileSelect={handleFileSelect}
-                selectedFile={selectedFile}
-                onClearFile={handleClearFile}
-              />
+        <div className="pointer-events-none fixed bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/90 to-transparent p-8 md:left-64">
+          <div className="pointer-events-auto mx-auto flex max-w-4xl flex-col gap-4">
+            {chatError && (
+              <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300 shadow-lg">
+                {chatError}
+              </div>
+            )}
+            <Composer
+              chatInput={chatInput}
+              showSuggestions={activeMessages.length === 0}
+              isLoading={isLoading}
+              onChange={handleInputChange}
+              onSubmit={handleSubmitMessage}
+              disabled={(!chatInput.trim() && !selectedFile) || isLoading}
+              onMicClick={handleToggleListening}
+              isListening={listening}
+              onFileSelect={handleFileSelect}
+              selectedFile={selectedFile}
+              onClearFile={handleClearFile}
+            />
           </div>
         </div>
 
-        <VoiceOverlay 
-          listening={listening} 
-          onStop={stopListening} 
-          transcript={transcript} 
+        <VoiceOverlay
+          listening={listening}
+          onStop={stopListening}
+          transcript={transcript}
         />
       </main>
     </div>

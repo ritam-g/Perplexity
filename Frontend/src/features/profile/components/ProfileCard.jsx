@@ -70,7 +70,7 @@ export function ProfileCard({
               value={profileForm[field.id]}
               onChange={onChange}
               placeholder={field.placeholder}
-              className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition duration-300 placeholder:text-slate-600 focus:border-primary/35 focus:bg-[#0d1420] focus:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]"
+              className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition-all duration-200 ease-out placeholder:text-slate-600 hover:border-white/12 focus:border-primary/35 focus:bg-[#0d1420] focus:ring-2 focus:ring-primary/15 focus:shadow-[0_18px_45px_rgba(34,211,238,0.12)]"
             />
           </label>
         ))}
@@ -98,7 +98,7 @@ export function ProfileCard({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full px-5 py-3 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="rounded-full px-5 py-3 text-sm font-semibold text-slate-400 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:bg-white/5 hover:text-white active:scale-[0.98]"
           >
             Cancel
           </button>
@@ -106,7 +106,7 @@ export function ProfileCard({
             type="button"
             onClick={onSave}
             disabled={isSaving || !isDirty}
-            className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(34,211,238,0.98),rgba(67,97,238,0.95))] px-6 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_45px_rgba(59,130,246,0.26)] transition duration-300 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
+            className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(34,211,238,0.98),rgba(67,97,238,0.95))] px-6 py-3 text-sm font-bold text-slate-950 shadow-[0_18px_45px_rgba(59,130,246,0.26)] transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:shadow-[0_22px_55px_rgba(59,130,246,0.3)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
@@ -116,7 +116,7 @@ export function ProfileCard({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-400 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:bg-white/5 hover:text-white active:scale-[0.98]"
           >
             Cancel
           </button>

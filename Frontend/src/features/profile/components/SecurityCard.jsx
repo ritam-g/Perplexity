@@ -38,7 +38,7 @@ export function SecurityCard({
             value={securityForm.currentPassword}
             onChange={onChange}
             placeholder="Enter your current password"
-            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition duration-300 placeholder:text-slate-600 focus:border-primary/35 focus:bg-[#0d1420] focus:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]"
+            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition-all duration-200 ease-out placeholder:text-slate-600 hover:border-white/12 focus:border-primary/35 focus:bg-[#0d1420] focus:ring-2 focus:ring-primary/15 focus:shadow-[0_18px_45px_rgba(34,211,238,0.12)]"
           />
         </label>
 
@@ -52,7 +52,7 @@ export function SecurityCard({
             value={securityForm.newPassword}
             onChange={onChange}
             placeholder="Create a stronger password"
-            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition duration-300 placeholder:text-slate-600 focus:border-primary/35 focus:bg-[#0d1420] focus:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]"
+            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition-all duration-200 ease-out placeholder:text-slate-600 hover:border-white/12 focus:border-primary/35 focus:bg-[#0d1420] focus:ring-2 focus:ring-primary/15 focus:shadow-[0_18px_45px_rgba(34,211,238,0.12)]"
           />
         </label>
 
@@ -66,7 +66,7 @@ export function SecurityCard({
             value={securityForm.confirmPassword}
             onChange={onChange}
             placeholder="Confirm your new password"
-            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition duration-300 placeholder:text-slate-600 focus:border-primary/35 focus:bg-[#0d1420] focus:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]"
+            className="profile-input h-16 rounded-[1.5rem] border border-white/8 bg-[#0b101a] px-5 text-base text-white outline-none transition-all duration-200 ease-out placeholder:text-slate-600 hover:border-white/12 focus:border-primary/35 focus:bg-[#0d1420] focus:ring-2 focus:ring-primary/15 focus:shadow-[0_18px_45px_rgba(34,211,238,0.12)]"
           />
         </label>
       </div>
@@ -92,7 +92,7 @@ export function SecurityCard({
           <button
             type="button"
             onClick={onLogoutEverywhere}
-            className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10 hover:text-rose-200"
+            className="inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-rose-300 transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:bg-rose-500/10 hover:text-rose-200 active:scale-[0.98]"
           >
             <span className="material-symbols-outlined text-[18px]">logout</span>
             Logout all devices
@@ -102,7 +102,7 @@ export function SecurityCard({
             type="button"
             onClick={onSave}
             disabled={isSaving || !canSubmit}
-            className="inline-flex items-center justify-center rounded-full border border-white/8 bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition duration-300 hover:border-primary/30 hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55"
+            className="inline-flex items-center justify-center rounded-full border border-white/8 bg-white/[0.04] px-6 py-3 text-sm font-bold text-white transition-all duration-150 ease-out transform-gpu will-change-transform hover:scale-[1.02] hover:border-primary/30 hover:bg-primary/10 hover:shadow-[0_18px_40px_rgba(4,10,24,0.18)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:scale-100"
           >
             {isSaving ? 'Updating...' : 'Update Password'}
           </button>

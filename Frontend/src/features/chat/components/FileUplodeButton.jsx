@@ -25,7 +25,8 @@ const FileUploadButton = ({ onFileSelect, disabled = false }) => {
         type="button"
         onClick={handleClick}
         disabled={disabled}
-        className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400 md:flex"
+        className="hidden h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-all duration-200 ease-out transform-gpu will-change-transform hover:scale-105 hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-transparent disabled:hover:text-slate-400 md:flex"
+        aria-label="Attach file"
       >
         <PaperclipIcon />
       </button>
